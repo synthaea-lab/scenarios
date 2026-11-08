@@ -19,20 +19,18 @@
 
 set -euo pipefail
 
+. "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
+
 PORT=8080
 OUT_FILE="/tmp/edr-test-dropper-payload"
 
-# Server in its own session (process group): cleanup must reach the nc child,
-# not just the loop — `kill $!` alone leaves an orphaned nc holding the port, and
-# the next run's `nc -l` then fails and the loop spins hot (#113).
-setsid bash -c '
+add_cleanup rm -f "$OUT_FILE"
+start_loopback_listener '
   resp="HTTP/1.1 200 OK\r\nContent-Length: 7\r\n\r\npayload"
   while true; do
     printf "$resp" | nc -l -p "$1" -q1 >/dev/null 2>&1 || printf "$resp" | nc -l "$1" >/dev/null 2>&1
   done
-' bash "$PORT" &
-SERVER_PGID=$!
-trap 'kill -- -"$SERVER_PGID" 2>/dev/null || true; rm -f "$OUT_FILE"' EXIT
+' "$PORT"
 
 sleep 1
 

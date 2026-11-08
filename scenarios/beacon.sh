@@ -14,20 +14,17 @@
 
 set -euo pipefail
 
+. "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
+
 PORT=4444
 CONNECTIONS=4
 INTERVAL=2
 
-# Listener in its own session (process group): cleanup must reach the nc child,
-# not just the loop — `kill $!` alone leaves an orphaned nc holding the port, and
-# the next run's `nc -l` then fails and the loop spins hot (#113).
-setsid bash -c '
+start_loopback_listener '
   while true; do
     nc -l -p "$1" >/dev/null 2>&1 || nc -l "$1" >/dev/null 2>&1
   done
-' bash "$PORT" &
-LISTENER_PGID=$!
-trap 'kill -- -"$LISTENER_PGID" 2>/dev/null || true' EXIT
+' "$PORT"
 
 sleep 1
 

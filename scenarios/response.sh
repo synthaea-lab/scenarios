@@ -34,6 +34,8 @@
 
 set -uo pipefail
 
+. "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
+
 EXPECT="${EXPECT:?set EXPECT=enforce or EXPECT=observe to match how the agent was started}"
 case "$EXPECT" in enforce | observe) ;; *) echo "EXPECT must be enforce or observe" >&2; exit 2 ;; esac
 
@@ -44,14 +46,12 @@ MARKER="SYNTHAEA-RESPONSE-SCENARIO-MARKER"
 
 command -v nc >/dev/null || { echo "needs nc for the listener" >&2; exit 2; }
 
-# Listener in its own session, cleaned up as a group (same reasoning as beacon.sh, #113).
-setsid bash -c '
+add_cleanup rm -f "$PAYLOAD"
+start_loopback_listener '
   while true; do
     nc -l -p "$1" >/dev/null 2>&1 || nc -l "$1" >/dev/null 2>&1
   done
-' bash "$PORT" &
-LISTENER_PGID=$!
-trap 'kill -- -"$LISTENER_PGID" 2>/dev/null || true; rm -f "$PAYLOAD"' EXIT
+' "$PORT"
 sleep 1
 
 # The dropped payload: opened for writing, which is what queues a YARA scan.

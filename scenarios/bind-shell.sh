@@ -28,25 +28,20 @@
 
 set -euo pipefail
 
+. "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
+
 PORT=4445
 LISTEN_HOLD=12
 
 WORKDIR="$(mktemp -d)"
 FIFO="$WORKDIR/shell.fifo"
 mkfifo "$FIFO"
+add_cleanup rm -rf "$WORKDIR"
 
-# Listener in its own session (process group), so cleanup reaches the nc and
-# sh children too, not just the wrapper (same pattern as beacon.sh, #113).
-setsid bash -c '
+start_loopback_listener '
   fifo=$1 port=$2
   sh -i <"$fifo" 2>&1 | { nc -l -s 127.0.0.1 -p "$port" 2>/dev/null || nc -l 127.0.0.1 "$port"; } >"$fifo"
-' bash "$FIFO" "$PORT" &
-LISTENER_PGID=$!
-cleanup() {
-    kill -- -"$LISTENER_PGID" 2>/dev/null || true
-    rm -rf "$WORKDIR"
-}
-trap cleanup EXIT
+' "$FIFO" "$PORT"
 
 sleep 1
 echo "Bind shell listening on 127.0.0.1:$PORT; holding ${LISTEN_HOLD}s for the agent's listener poll..."
