@@ -26,4 +26,4 @@ notes: >
   Every single captured event in that run showed ppid=0, including unrelated
   background processes — a WSL2-specific PROC_LINEAGE defect, not a #53 regression
   (already ruled out by the real-hardware run above). WSL2 isn't a row in
-  lab/MATRIX.md; don't use it to sanity-check this scenario.
+  rig/docs/machine-matrix.md; don't use it to sanity-check this scenario.

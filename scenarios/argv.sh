@@ -4,7 +4,7 @@
 # The eBPF probe no longer reads argv from `mm->arg_start..arg_end` (the last
 # per-kernel frozen offset); the userspace loader reads `/proc/<pid>/cmdline` when it
 # drains the exec event. This scenario is the assertion for "argv/cmdline is correct
-# across the Linux rows of MATRIX.md": the T1059.004 base64 rule matches on the
+# across the Linux rows of rig/docs/machine-matrix.md": the T1059.004 base64 rule matches on the
 # process's `cmdline`, so it fires *only if* the loader captured the argument vector.
 #
 # Shape: a shell runs a one-liner that contains `base64` and a decode flag. The

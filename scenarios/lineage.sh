@@ -4,7 +4,7 @@
 # The eBPF probes derive a process's parent from the PROC_LINEAGE fork-tracking map
 # (sched_process_fork tracepoint fields + /proc priming), NOT a frozen-offset
 # task_struct walk. This scenario is the assertion for "ppid is correct across the
-# Linux rows of MATRIX.md": it must produce the same alert on every kernel, whereas
+# Linux rows of rig/docs/machine-matrix.md": it must produce the same alert on every kernel, whereas
 # the old task_struct read returned garbage (ppid=4294901760) on any kernel other
 # than the one the bindings were generated from.
 #

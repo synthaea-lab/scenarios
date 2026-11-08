@@ -73,7 +73,7 @@ function Start-ScenarioAgent {
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
     $dir = (Resolve-Path $dir).Path
     $config = Join-Path $dir "agent.toml"
-    # Same lab template as lab\validate-windows-admin.ps1: offline, nothing
+    # Same template as rig\runner\windows\validate-admin.ps1: offline, nothing
     # outside the run directory.
     @"
 schema_version = 1
