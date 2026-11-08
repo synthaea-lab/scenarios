@@ -4,8 +4,6 @@ Scripted, benign-by-construction attack simulations used to validate detections 
 lab. Each scenario documents the detections it is expected to trigger, so a run is an
 assertion, not a demo.
 
-To migrate from `old/lab` after review:
-
 | Scenario | Simulates | Expected detections |
 | --- | --- | --- |
 | `beacon.sh` | Periodic same-destination C2 traffic | BEACON rule, correlation case |
@@ -20,8 +18,8 @@ To migrate from `old/lab` after review:
 | `log-clear.sh` | A log file under `/var/log/` deleted outright | T1070.002 — asserts the FileDeleteEvent-side `check_log_file_delete` rule (Linux only here; the exec-side `check_log_clear_exec` half needs a systemd-based row) |
 | `mysql-failed-login.sh` | Six failed logins against a local MariaDB/MySQL server | T1110 — asserts the `[logs]` `mysql_error` source end to end: error-log line → failed-logon AuthEvent → `on_auth` burst rule (#478) |
 | `web-webshell.sh` | One request per access-log signature to a local nginx/Apache, then a shell spawned by a process named `nginx` | T1505.003 (+ T1059 lineage) — asserts the `[logs]` `access_combined` source end to end: access-log line → `HttpRequest` event → correlator pairing with the web-server shell (#478). Run against nginx 1.24 with the real agent, before the evidence redaction (ADR-0018) was wired in |
-| `web-webshell-php.sh` | A real PHP web shell dropped under the web root of Apache + PHP-FPM, then run through a request | T1505.003 + T1059 (parent `php-fpm*`) � the end-to-end case `web-webshell.sh` imitates: a real php-fpm worker spawns the shell, the request is in Apache's access log (#478). Lab VM only |
-| `web-custom-logformat.sh` | Requests to an Apache vhost whose log is not in combined format | `LOG-SOURCE` � the misparsing alert of an `access_combined` source (#478) |
+| `web-webshell-php.sh` | A real PHP web shell dropped under the web root of Apache + PHP-FPM, then run through a request | T1505.003 + T1059 (parent `php-fpm*`) — the end-to-end case `web-webshell.sh` imitates: a real php-fpm worker spawns the shell, the request is in Apache's access log (#478). Lab VM only |
+| `web-custom-logformat.sh` | Requests to an Apache vhost whose log is not in combined format | `LOG-SOURCE` — the misparsing alert of an `access_combined` source (#478) |
 | `bind-shell.sh` | Interactive shell served on a loopback TCP port through a listening `nc` | T1571 — asserts `check_listen_port_drift` on a listener opened after agent startup (netlink poll, 10s); also produces the eBPF SocketBind/Listen/Accept telemetry from #263 |
 | `encoded-powershell.ps1` | `powershell.exe -EncodedCommand <base64>` invocations | T1059.001 — asserts the ExecEvent-side `check_encoded_powershell` rule |
 | `scheduled-task-persistence.ps1` | `schtasks.exe /Create` a demo task | T1053.005 — asserts the 4698 → `FLAG_PERSISTENCE_TASK_ARTIFACT` → `check_scheduled_task_persistence` end-to-end pipeline |
@@ -32,14 +30,15 @@ To migrate from `old/lab` after review:
 | `ransomware-rename-burst.sh` | Same-pid burst of file renames, each appending a suffix onto its own old name | T1486 — asserts `check_mass_rename_pattern`'s extension-agnostic mass-rename detection (issue #262) |
 | `ransomware-reflex.sh` | A benign encryptor reads the planted canaries, then renames throwaway files one by one; run with kill on or off (`EXPECT=enforce\|observe`, `CANARY_DIR`) | T1083 canary detection + T1486 + `RESPONSE-KILL` (issue #82) — asserts the encryptor is killed before more than `MAX_ENCRYPTED` (default 60) files are renamed; needs `[deception] canary_dirs` outside `/tmp`. Run on a VM 2026-10-08 and 2026-10-15 (Fedora 44, 43), observe and enforce: killed after 20 of 300 renames both times (see the yaml) |
 | `pid-reuse.sh` | A real `sed` runs, its pid is forced to be recycled (`ns_last_pid`) by a forked child that sets `comm=sed` and renames files with a `.bak` suffix; run as root, `recycled` (default) or `real` (control) | T1486 — asserts the in-place-edit exclusion does not follow a recycled pid (#519); `real` expects no alert |
+| `timestomp-linux.sh` | File times set explicitly (`touch -d`, `os.utime`, `touch -m -d`) next to a write, a plain `touch` and a `chmod` that must stay silent | T1070.006 — asserts `evaluate_file_set_time` reports the three explicit time changes and none of the others (#1036/#1044); needs `bpf` in the active LSM list |
 | `prevalence-lineage.sh` | The `lineage.sh` chain from a directory named by `TAG` (`TAG=shared` on two hosts, `TAG=only-a` on one); needs an uploading agent | T1059 + the fleet triage line on the case: "seen on 2 hosts" for the shared transition, "seen on 1 host" for the one-host one (issue #76, box 1) |
 | `windows-container.ps1` | A process-isolated container (`ping -t`, then `docker exec hostname.exe`) and a `hostname.exe` on the host; elevated, with `-AgentExe` it runs the agent and checks the result | No alert: asserts `EventMeta::container` on the container's exec events (the Docker id, including the process that exits at once) and none on the host's (#371). Needs the Containers feature and Docker in Windows mode (Server 2025 or Windows 11 22H2+ Pro). Not yet run on a VM |
 
-The `.ps1` scenarios above other than `bits-job.ps1` and `windows-container.ps1` are the Windows demo surface — see `../../demo/`
-for the runbook that chains them in the reviewer-facing order.
+The `.ps1` scenarios above other than `bits-job.ps1` and `windows-container.ps1` are the Windows demo surface.
 
 New scenarios follow the same shape: one script, one documented expectation list,
-runnable against any platform's agent from the VM matrix (`../vagrant`).
+runnable against any platform's agent from the VM matrix
+([synthaea-lab/rig](https://github.com/synthaea-lab/rig)).
 
 ## Raw syscall-exit stale-entry regression (#694)
 
@@ -100,16 +99,17 @@ simulates: >
   Free-text description of what the scenario simulates.
 expected_detections:
   - technique: "<exact Alert.technique / CorrelationAlert.technique string>"
-    rule: <crates/rules or crates/correlator fn name>   # doc-only, not asserted at replay time
+    rule: <agent crates/rules or crates/correlator fn name>   # doc-only, not asserted at replay time
     min_count: 1    # >= 1
     tolerance: 0     # allowed overshoot: pass iff observed_count <= min_count + tolerance
 notes: null
 ```
 
 `technique` matches by exact string against `AlertRecord.technique` in `alerts.ndjson`
-(`crates/sinks/src/lib.rs`) — both `Alert` and `CorrelationAlert` converge there, so one
+(`crates/sinks/src/lib.rs` in [synthaea-lab/agent](https://github.com/synthaea-lab/agent)) — both `Alert` and `CorrelationAlert` converge there, so one
 schema covers rule-engine and correlator-engine detections alike. This binds into the
-model record's `scenario_replays` (ADR-0009, `docs/adr/0009-model-record-scenario-replay-binding.md`):
+model record's `scenario_replays` (ADR-0009):
 `ExpectedDetection`/`ObservedDetection` there use the same field names.
+Sidecars are byte-exact: see "Byte-exact sidecars" in the top-level README before editing one.
 Scenario/schema decisions live on issue #44; the replay engine itself is separate,
 still-unwritten work.
