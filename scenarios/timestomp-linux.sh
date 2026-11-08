@@ -7,7 +7,7 @@
 #
 # Usage:
 #   1) terminal A: sudo target/release/agent run   (needs bpf in the active lsm= list)
-#   2) terminal B: ./lab/scenarios/timestomp-linux.sh
+#   2) terminal B: ./scenarios/timestomp-linux.sh
 #   3) expected in terminal A: three T1070.006 alerts (touch -d, python utime, touch -m -d),
 #      none for the write, the plain touch and the chmod.
 

@@ -18,7 +18,7 @@
 #
 # Usage:
 #   1) terminal A: sudo target/release/agent run
-#   2) terminal B: ./lab/scenarios/ld-preload-hijack.sh
+#   2) terminal B: ./scenarios/ld-preload-hijack.sh
 #   3) expected in terminal A:
 #      T1574.006 — pid=...: LD_PRELOAD=/tmp/edr-test-preload.so loads a shared
 #      object outside the dynamic linker's trusted search path

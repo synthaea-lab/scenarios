@@ -17,7 +17,7 @@
 #
 # Usage:
 #   1) terminal A: sudo target/release/agent run
-#   2) terminal B: ./lab/scenarios/respawn-beacon.sh
+#   2) terminal B: ./scenarios/respawn-beacon.sh
 #   3) expected IF the rule works as documented:
 #      T1059/T1071 — pid=...: N spawns + network connection — automatic respawn with suspected beaconing
 #      expected IF the hypothesis above is confirmed: no respawn alert, only the

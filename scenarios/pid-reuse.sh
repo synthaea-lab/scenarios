@@ -18,7 +18,7 @@
 #
 # Usage:
 #   1) terminal A: sudo target/release/agent run --alerts /tmp/a --events /tmp/e
-#   2) terminal B: sudo ./lab/scenarios/pid-reuse.sh [recycled|real]
+#   2) terminal B: sudo ./scenarios/pid-reuse.sh [recycled|real]
 #        recycled (default) - the renames come from a recycled pid: one T1486 alert
 #        real               - control: a real `sed -i.bak` over the same files: no alert
 #   3) expected in terminal A:
@@ -34,7 +34,7 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 2
 fi
 
-DIR="$(mktemp -d "$HOME/edr-lab-pid-reuse-XXXXXX")"
+DIR="$(mktemp -d "$HOME/synthaea-scenario-pid-reuse-XXXXXX")"
 COUNT=22 # a couple past RANSOMWARE_RENAME_THRESHOLD (20) for timing margin
 
 cleanup() { rm -rf "$DIR"; }

@@ -22,8 +22,8 @@
 #   3) terminal A, ENFORCE:  sudo target/release/agent run --enable-kill
 #      terminal A, OBSERVE:  sudo target/release/agent run
 #      Start it BEFORE this script and let it plant the canaries (it logs "canaries planted").
-#   4) terminal B:           CANARY_DIR=... EXPECT=enforce ./lab/scenarios/ransomware-reflex.sh
-#                            CANARY_DIR=... EXPECT=observe ./lab/scenarios/ransomware-reflex.sh
+#   4) terminal B:           CANARY_DIR=... EXPECT=enforce ./scenarios/ransomware-reflex.sh
+#                            CANARY_DIR=... EXPECT=observe ./scenarios/ransomware-reflex.sh
 #
 # Expected in alerts.ndjson (see ransomware-reflex.yaml): the canary detection (T1083,
 # "canary file touched"), T1486, and RESPONSE-KILL: "killed pid N on a corroborated

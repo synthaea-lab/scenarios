@@ -33,7 +33,7 @@ SCENARIOS=(beacon bind-shell dropper-chain lineage persistence-write respawn-bea
 command -v cc >/dev/null 2>&1 && SCENARIOS+=(ld-preload-hijack)
 # Scenarios whose PARENT is odd (a web application or an Office-named process running a shell,
 # a dropped binary running children): the ones a lineage feature has a chance to help on. They
-# live beside this script (`odd-parents/`), not in lab/scenarios, because they have no rule
+# live beside this script (`odd-parents/`), not in scenarios/, because they have no rule
 # sidecar: they exist for this capture.
 SCENARIOS+=(odd-parents/webapp-spawns-shell odd-parents/office-spawns-shell odd-parents/dropped-binary-spawns-children)
 

@@ -15,7 +15,7 @@
 #
 # Usage:
 #   1) host with agent running:  agent run --enable-dns-capture (Linux) / agent run (Windows)
-#   2) this box:                 ./lab/scenarios/dns-exfil.sh [PARENT_DOMAIN]
+#   2) this box:                 ./scenarios/dns-exfil.sh [PARENT_DOMAIN]
 #   3) expected in the agent output:
 #      T1048.003/T1071.004 — pid=... comm=...: N distinct high-entropy subdomains
 #      of <parent> within the window — suspected DNS tunnelling / exfiltration

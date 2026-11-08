@@ -26,7 +26,7 @@
 # Usage:
 #   1) terminal A: sudo target/release/agent --config /etc/synthaea/agent.toml run \
 #        --alerts /tmp/a --events /tmp/e
-#   2) terminal B: ./lab/scenarios/web-webshell.sh
+#   2) terminal B: ./scenarios/web-webshell.sh
 #   3) expected, within a few seconds:
 #      in /tmp/a:  T1505.003 — shell spawned by a web server ... from a WebshellLike
 #                  request (GET /uploads/c99.php param=cmd, ...)

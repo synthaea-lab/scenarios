@@ -13,7 +13,7 @@
 #
 # Usage:
 #   1) terminal A: sudo target/release/agent run
-#   2) terminal B: ./lab/scenarios/argv.sh
+#   2) terminal B: ./scenarios/argv.sh
 #   3) expected: exactly one alert per iteration —
 #        T1059.004 — pid=<sh> comm=sh: command line contains a base64 decode: sh -c ...
 #      No alert means argv/cmdline capture is broken on this kernel ($(uname -r)).

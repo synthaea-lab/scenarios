@@ -36,7 +36,7 @@
           processes run in
 
 .LINK
-    https://github.com/synthaea-lab/edr/issues/371
+    https://github.com/synthaea-lab/edr-agent/issues/39
 #>
 param(
     [string]$Image = "mcr.microsoft.com/windows/nanoserver:ltsc2025",

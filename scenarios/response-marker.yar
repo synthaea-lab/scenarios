@@ -8,7 +8,7 @@ rule response_scenario_marker
     meta:
         technique = "T1105"
         severity = "low"
-        falsepositives = "none: the marker string only appears in lab/scenarios/response.sh's payload"
+        falsepositives = "none: the marker string only appears in scenarios/response.sh's payload"
     strings:
         $marker = "SYNTHAEA-RESPONSE-SCENARIO-MARKER"
     condition:

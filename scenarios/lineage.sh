@@ -31,7 +31,7 @@
 #
 # Usage:
 #   1) terminal A: sudo target/release/agent run --events events.jsonl --alerts alerts.ndjson
-#   2) terminal B: ./lab/scenarios/lineage.sh
+#   2) terminal B: ./scenarios/lineage.sh
 #   3) expected: exactly one alert per iteration —
 #        T1059 — pid=<child> comm=sh executed directly by ppid=<nginx-pid> comm=nginx
 #        (web server) — suspicious process lineage

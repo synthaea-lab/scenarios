@@ -19,7 +19,7 @@
 # Usage:
 #   1) terminal A: sudo target/release/agent --config /etc/synthaea/agent.toml run \
 #        --alerts /tmp/a --events /tmp/e
-#   2) terminal B: ./lab/scenarios/web-custom-logformat.sh
+#   2) terminal B: ./scenarios/web-custom-logformat.sh
 #   3) expected in /tmp/a, once the 60 s window closes (the script waits for it):
 #      LOG-SOURCE naming /var/log/apache2/custom-format.log
 

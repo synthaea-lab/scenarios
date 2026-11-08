@@ -1,4 +1,4 @@
-# lab/scenarios
+# scenarios
 
 Scripted, benign-by-construction attack simulations used to validate detections in the
 lab. Each scenario documents the detections it is expected to trigger, so a run is an
@@ -53,7 +53,7 @@ so it is not expected to increment `PENDING_EXIT_MISMATCH_DROPPED`.
 On a Linux VM with the agent running and event capture enabled:
 
 ```sh
-gcc -O2 -Wall -Wextra -pthread lab/scenarios/pending-syscall-exit-exec.c -o /tmp/pending-syscall-exit-exec
+gcc -O2 -Wall -Wextra -pthread scenarios/pending-syscall-exit-exec.c -o /tmp/pending-syscall-exit-exec
 sudo /tmp/pending-syscall-exit-exec
 ```
 

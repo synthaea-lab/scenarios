@@ -1,4 +1,4 @@
-# lab/ml-capture: the real capture behind the T1 retrain (#617)
+# ml-capture: the real capture behind the T1 retrain (#617)
 
 The T1 behavior model scores one process on its command line (9 features) and its correlation
 context (8). #617 asked whether adding the parents (6 more features) detects more at the same
@@ -47,7 +47,7 @@ All commands run on the VM as root unless noted; the agent is built from `main`
 
    ```
    sudo ./agent capture-events --output events.jsonl          # A, leave running
-   DURATION=1200 ./lab/ml-capture/benign-workload.sh         # B, as the user whose activity to model
+   DURATION=1200 ./ml-capture/benign-workload.sh         # B, as the user whose activity to model
    ```
 
    Run it as an ordinary user, then again as root (the system manager becomes the parent of the
@@ -57,7 +57,7 @@ All commands run on the VM as root unless noted; the agent is built from `main`
 
    ```
    sudo ./agent capture-events --output events-malicious.jsonl        # A
-   sudo ./lab/ml-capture/malicious-run.sh out-malicious               # B
+   sudo ./ml-capture/malicious-run.sh out-malicious               # B
    ```
 
    `out-malicious/run.json` holds the runner's pid and the window of the run. A scenario that
@@ -81,7 +81,7 @@ All commands run on the VM as root unless noted; the agent is built from `main`
    python -m synthaea_ml.training.train_behavior \
        --dataset ml/datasets/captures/linux-lab-<date>/ \
        --output-dir ml/registry/behavior-iforest-linux/0.1.0/ \
-       --robustness-scenarios lab/scenarios/beacon.yaml lab/scenarios/lineage.yaml \
+       --robustness-scenarios scenarios/beacon.yaml scenarios/lineage.yaml \
        --robustness-events ml/datasets/labeled/linux-lab-<date>/events.jsonl
    python -m synthaea_ml.evaluation.robustness_cli verify \
        --model-dir ml/registry/behavior-iforest-linux/0.1.0/ --max-escape-rate 0.15

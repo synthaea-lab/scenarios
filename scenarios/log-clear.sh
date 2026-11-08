@@ -16,15 +16,15 @@
 #
 # Usage:
 #   1) terminal A: sudo target/release/agent run
-#   2) terminal B: sudo ./lab/scenarios/log-clear.sh (writes under /var/log/)
+#   2) terminal B: sudo ./scenarios/log-clear.sh (writes under /var/log/)
 #   3) expected in terminal A:
-#      T1070.002 — pid=...: log file deleted (/var/log/): /var/log/edr-lab-test.log
+#      T1070.002 — pid=...: log file deleted (/var/log/): /var/log/synthaea-scenario-test.log
 
 set -euo pipefail
 
 [ "$(id -u)" -eq 0 ] || { echo "run as root (writes under /var/log/) — sudo $0" >&2; exit 1; }
 
-LOGFILE=/var/log/edr-lab-test.log
+LOGFILE=/var/log/synthaea-scenario-test.log
 
 # Safety net only: the script's own delete below is what normally removes it.
 # [ -e ] first so a clean run never issues a second unlink on the path — our

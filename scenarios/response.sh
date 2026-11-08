@@ -14,12 +14,12 @@
 # this script is the same stream on a real kernel).
 #
 # Setup:
-#   1) install lab/scenarios/response-marker.yar under <content-dir>/rules/yara/
+#   1) install scenarios/response-marker.yar under <content-dir>/rules/yara/
 #      (see that file), so the agent loads it at start
 #   2) terminal A, ENFORCE:  sudo target/release/agent run --enable-kill --enable-quarantine
 #      terminal A, OBSERVE:  sudo target/release/agent run
-#   3) terminal B:           EXPECT=enforce ./lab/scenarios/response.sh
-#                            EXPECT=observe ./lab/scenarios/response.sh
+#   3) terminal B:           EXPECT=enforce ./scenarios/response.sh
+#                            EXPECT=observe ./scenarios/response.sh
 #
 # Expected in alerts.ndjson (see response.yaml): BAYES, RESPONSE-KILL and
 # RESPONSE-QUARANTINE. The message says which: "killed pid N ..." and

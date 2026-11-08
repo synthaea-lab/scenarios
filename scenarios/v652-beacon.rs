@@ -1,4 +1,4 @@
-// Standalone beacon for lab/validate-652.sh's scenarios B and C: a compiled binary under a
+// Standalone beacon for the lab's validate-652 run (scenarios B and C): a compiled binary under a
 // trusted path (`/usr/libexec/v652-beacon`), run as a systemd unit's `ExecStart` so its main
 // process is this binary with ppid 1 — the case `policy::service_main_path_is_trusted` is meant
 // to protect, as opposed to a shell or interpreter, which it excludes on purpose (#755).

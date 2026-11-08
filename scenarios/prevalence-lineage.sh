@@ -11,9 +11,9 @@
 # `/tmp/nginx -> ...` on every host and the scenario could not tell hosts apart.
 #
 # Usage (agent enrolled and uploading: `agent run --server ...`, not --standalone):
-#   host A:  TAG=shared  ./lab/scenarios/prevalence-lineage.sh
-#   host B:  TAG=shared  ./lab/scenarios/prevalence-lineage.sh
-#   host A:  TAG=only-a  ./lab/scenarios/prevalence-lineage.sh
+#   host A:  TAG=shared  ./scenarios/prevalence-lineage.sh
+#   host B:  TAG=shared  ./scenarios/prevalence-lineage.sh
+#   host A:  TAG=only-a  ./scenarios/prevalence-lineage.sh
 #   then, on the control plane, run the grouping cron and read each case:
 #     expected: the `shared` case shows "seen on 2 hosts, first <date>" and the `only-a`
 #     case shows "seen on 1 host, first <date>" on its transition line

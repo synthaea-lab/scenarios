@@ -26,7 +26,7 @@
 # Usage:
 #   1) terminal A: sudo target/release/agent --config /etc/synthaea/agent.toml run \
 #        --alerts /tmp/a --events /tmp/e
-#   2) terminal B: ./lab/scenarios/mysql-failed-login.sh
+#   2) terminal B: ./scenarios/mysql-failed-login.sh
 #   3) expected in /tmp/a (within a couple of seconds):
 #      T1110 — target=edr_lab_victim source=local: 5 failed authentications in 60s
 #

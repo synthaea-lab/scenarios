@@ -8,7 +8,7 @@
 #
 # Usage:
 #   1) terminal A: sudo target/release/agent run
-#   2) terminal B: ./lab/scenarios/beacon.sh
+#   2) terminal B: ./scenarios/beacon.sh
 #   3) expected in terminal A, on the 3rd connection:
 #      T1071/T1041 — pid=... comm=nc → 127.0.0.1:4444 | 3x in 60s — suspected beaconing
 

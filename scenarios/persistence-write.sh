@@ -13,7 +13,7 @@
 #
 # Usage:
 #   1) terminal A: sudo target/release/agent run
-#   2) terminal B: ./lab/scenarios/persistence-write.sh
+#   2) terminal B: ./scenarios/persistence-write.sh
 #   3) expected in terminal A, two alerts (#431 review): the append below, then one
 #      more when cleanup restores the file on exit — restoring is itself a
 #      write-intent open on a path containing ".bashrc":
@@ -22,7 +22,7 @@
 set -euo pipefail
 
 TARGET="$HOME/.bashrc"
-MARKER="# edr-lab-test-persistence-marker (harmless — added and removed by lab/scenarios/persistence-write.sh)"
+MARKER="# synthaea-scenario-test-persistence-marker (harmless — added and removed by scenarios/persistence-write.sh)"
 
 # A backup-and-restore cleanup, not the old grep-filter-into-a-new-file dance: that
 # approach created a new inode on restore, losing permissions and — for a dotfile
@@ -32,7 +32,7 @@ MARKER="# edr-lab-test-persistence-marker (harmless — added and removed by lab
 # contain ".bashrc", so creating/removing it never itself matches the rule.
 EXISTED=0
 [ -e "$TARGET" ] && EXISTED=1
-BACKUP=$(mktemp /tmp/edr-lab-profile.XXXXXX)
+BACKUP=$(mktemp /tmp/synthaea-scenario-profile.XXXXXX)
 [ "$EXISTED" -eq 1 ] && cp -p "$TARGET" "$BACKUP"
 
 cleanup() {

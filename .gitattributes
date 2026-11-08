@@ -1,4 +1,4 @@
-# Split from the synthaea-lab/edr monorepo's root .gitattributes; see its history for the incidents.
+# Split from the original monorepo's root .gitattributes; see its history for the incidents.
 # Shell scripts are rsynced verbatim into Linux guests: a lone \r breaks every command.
 *.sh   text eol=lf
 *.bash text eol=lf

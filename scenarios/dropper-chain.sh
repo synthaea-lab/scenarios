@@ -13,7 +13,7 @@
 #
 # Usage:
 #   1) terminal A: sudo target/release/agent run
-#   2) terminal B: ./lab/scenarios/dropper-chain.sh
+#   2) terminal B: ./scenarios/dropper-chain.sh
 #   3) expected in terminal A:
 #      T1105/T1059/T1071 — pid=...: spawn + network connection + file write — full dropper chain
 

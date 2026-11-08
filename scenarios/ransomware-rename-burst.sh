@@ -12,11 +12,11 @@
 #
 # This scenario creates its own throwaway directory of empty files and renames only
 # those — no real data touched, nothing actually encrypted, matching the
-# benign-by-construction convention of the rest of lab/scenarios/.
+# benign-by-construction convention of the rest of scenarios/.
 #
 # Usage:
 #   1) terminal A: sudo target/release/agent run
-#   2) terminal B: ./lab/scenarios/ransomware-rename-burst.sh [single|loop]
+#   2) terminal B: ./scenarios/ransomware-rename-burst.sh [single|loop]
 #        single (default) — one python3 process renames every file (per-pid counter)
 #        loop             — a shell `mv` loop, one short-lived pid per file, all
 #                           sharing this script's shell as ppid (per-ppid counter)
@@ -33,7 +33,7 @@ MODE="${1:-single}"
 # (issue #325/#426) — renames aren't filtered there either way (mutation events are
 # never dropped, only reads), but $HOME is also the more representative target: real
 # ransomware goes after documents, not scratch space.
-DIR="$(mktemp -d "$HOME/edr-lab-ransomware-XXXXXX")"
+DIR="$(mktemp -d "$HOME/synthaea-scenario-ransomware-XXXXXX")"
 COUNT=22 # a couple past RANSOMWARE_RENAME_THRESHOLD (20) for timing margin
 
 cleanup() { rm -rf "$DIR"; }

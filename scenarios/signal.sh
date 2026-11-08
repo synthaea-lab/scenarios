@@ -19,10 +19,10 @@
 #
 # Usage (as root, agent already running, from the agent's working directory or
 # with EVENTS/ALERTS pointing at its files):
-#   sudo ./lab/scenarios/signal.sh
-#   sudo ./lab/scenarios/signal.sh kill
+#   sudo ./scenarios/signal.sh
+#   sudo ./scenarios/signal.sh kill
 #   (restart the agent)
-#   sudo ./lab/scenarios/signal.sh verify-kill
+#   sudo ./scenarios/signal.sh verify-kill
 #
 # Environment: EVENTS (default events.jsonl), ALERTS (default alerts.ndjson),
 # AGENT_PID (default: oldest process named "agent" or "synthaea-agent").

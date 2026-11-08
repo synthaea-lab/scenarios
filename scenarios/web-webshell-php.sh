@@ -25,7 +25,7 @@
 # Usage:
 #   1) terminal A: sudo target/release/agent --config /etc/synthaea/agent.toml run \
 #        --alerts /tmp/a --events /tmp/e
-#   2) terminal B: sudo ./lab/scenarios/web-webshell-php.sh
+#   2) terminal B: sudo ./scenarios/web-webshell-php.sh
 #   3) expected in /tmp/a within a few seconds: T1505.003 naming the WebshellLike
 #      request (GET /uploads/c99.php param=cmd) and T1059 with parent php-fpm*
 
