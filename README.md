@@ -36,8 +36,11 @@ The ML pipeline ([synthaea-lab/ml](https://github.com/synthaea-lab/ml)) binds ea
 to the exact bytes of the scenario sidecars it was evaluated against. Editing a `.yaml` file
 invalidates those bindings: change one only together with a retrain, and keep its line endings LF
 (`.gitattributes` enforces it).
+CI holds both lines: `scenarios/sidecars.sha256` lists every sidecar's hash
+(`python3 tools/check-sidecar-bytes.py` checks it and says how to regenerate it), and a pull request
+that edits, renames or deletes a sidecar fails unless it carries the `retrain` label.
 
 ## License
 
 Apache-2.0; see [LICENSE](LICENSE) and [NOTICE](NOTICE). Contributions need a DCO sign-off
-(`git commit -s`).
+(`git commit -s`), which CI checks on every pull request.

@@ -23,7 +23,7 @@ D="$(mktemp -d "$HOME/.local/share/edr-odd-office.XXXXXX")" && [ -d "$D" ] || { 
 
 for name in winword excel outlook; do
     cp "$BASH_BIN" "$D/$name"
-    for round in 1 2 3; do
+    for _ in 1 2 3; do
         # A subshell in parentheses so the inner shell forks instead of exec-ing in place.
         "$D/$name" -c '(sh -c "whoami; hostname; ls /etc | head -2")'
         sleep 1
