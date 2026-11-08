@@ -29,5 +29,5 @@ notes: >
   every single exec event in that run, not just this scenario's, and the same run
   also showed ppid=0 for every process (see lineage.yaml's notes) — a broader
   WSL2-specific capture defect, not a #152 regression (already ruled out by the
-  real-hardware run above). WSL2 isn't a row in lab/MATRIX.md; don't use it to
+  real-hardware run above). WSL2 isn't a row in rig/docs/machine-matrix.md; don't use it to
   sanity-check this scenario.
