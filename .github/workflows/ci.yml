@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    # labeled/unlabeled re-run the sidecar gate when the `retrain` label changes.
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  workflow_dispatch:
+
+# Read-only token for every job: nothing here writes to the repo, and a
+# compromised step then can't push, tag or touch PRs.
+permissions:
+  contents: read
+
+jobs:
+  shell:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: bash -n on every shell script
+        run: git ls-files -z '*.sh' | xargs -0 -n 1 bash -n
+      # Warnings and errors only: the info-level SC2016 notes are single-quoted `$` meant
+      # literally (a command line handed to another shell).
+      - name: shellcheck
+        run: |
+          shellcheck --version
+          git ls-files -z '*.sh' | xargs -0 shellcheck --severity=warning
+
+  powershell-ascii:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: PowerShell scripts are ASCII-only
+        run: python3 tools/check-ps1-ascii.py
+
+  sidecar-bytes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Every sidecar matches scenarios/sidecars.sha256
+        run: python3 tools/check-sidecar-bytes.py
+      # Editing, renaming or deleting a sidecar invalidates the model records bound to its
+      # bytes, so it must come with a retrain; adding a new sidecar does not need the label.
+      - name: A changed sidecar needs the `retrain` label
+        if: github.event_name == 'pull_request'
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+          RETRAIN: ${{ contains(github.event.pull_request.labels.*.name, 'retrain') }}
+        run: |
+          changed=$(git diff --name-only --diff-filter=MDR "$BASE...$HEAD" -- 'scenarios/*.yaml')
+          if [ -z "$changed" ]; then
+            echo "No existing sidecar changed."
+            exit 0
+          fi
+          echo "Changed sidecars:"
+          echo "$changed"
+          if [ "$RETRAIN" != true ]; then
+            echo "::error::These sidecars are bound by hash to trained model records; change them only together with a retrain, and label the PR 'retrain'."
+            exit 1
+          fi
+          echo "Labelled 'retrain': allowed."

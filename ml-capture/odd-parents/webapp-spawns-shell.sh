@@ -27,7 +27,7 @@ D="$(mktemp -d "$HOME/.local/share/edr-odd-webapp.XXXXXX")" && [ -d "$D" ] || { 
 
 for name in gunicorn php-fpm uwsgi httpd; do
     ln -s "$PY" "$D/$name"
-    for round in 1 2; do
+    for _ in 1 2; do
         "$D/$name" -c 'import subprocess; subprocess.run(["sh", "-c", "id; uname -a; cat /etc/passwd | head -3; ps -ef | head -3"], capture_output=True)'
         sleep 1
     done

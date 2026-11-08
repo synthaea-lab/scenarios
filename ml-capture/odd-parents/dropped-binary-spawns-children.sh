@@ -29,7 +29,7 @@ D2="$(mktemp -d /var/tmp/edr-odd-drop.XXXXXX)"
 
 cp "$(command -v bash)" "$D1/kworker-update"
 cp "$(command -v python3)" "$D2/syslogd-helper"
-for round in 1 2 3; do
+for _ in 1 2 3; do
     "$D1/kworker-update" -c '(sh -c "id; uname -a; ip -br addr | head -2")'
     "$D2/syslogd-helper" -c 'import subprocess; subprocess.run(["sh", "-c", "ps -ef | head -3; ls /home | head -2"], capture_output=True)'
     sleep 1

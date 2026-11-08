@@ -85,6 +85,7 @@ fi
 job_login_shell() { bash -lc 'ls -la '"$WL"'/data | head -5; id; uname -a; df -h / | tail -1'; }
 job_sh_c() { sh -c 'cat '"$WL"'/data/file1.txt | wc -l; date; hostname'; }
 job_pipeline() { cat "$WL"/data/file*.txt | sort | uniq -c | sort -rn | head -3 >/dev/null; }
+# shellcheck disable=SC2038  # the find | xargs pipeline is the habit this job captures
 job_find_xargs() { find "$WL/data" -type f -name '*.txt' | xargs -n 2 wc -l >/dev/null; }
 job_tar() { tar -czf "$WL/out/a.tgz" -C "$WL" data && tar -tzf "$WL/out/a.tgz" >/dev/null && rm -f "$WL/out/a.tgz"; }
 job_timeout() { timeout 5 sleep 0.3; timeout 5 grep -c line "$WL/data/file3.txt" >/dev/null; }
