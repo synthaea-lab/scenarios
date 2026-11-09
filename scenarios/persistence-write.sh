@@ -21,6 +21,8 @@
 
 set -euo pipefail
 
+. "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
+
 TARGET="$HOME/.bashrc"
 MARKER="# synthaea-scenario-test-persistence-marker (harmless — added and removed by scenarios/persistence-write.sh)"
 
@@ -33,17 +35,19 @@ MARKER="# synthaea-scenario-test-persistence-marker (harmless — added and remo
 EXISTED=0
 [ -e "$TARGET" ] && EXISTED=1
 BACKUP=$(mktemp /tmp/synthaea-scenario-profile.XXXXXX)
+add_cleanup rm -f "$BACKUP"
 [ "$EXISTED" -eq 1 ] && cp -p "$TARGET" "$BACKUP"
 
-cleanup() {
+# restore_profile — put TARGET back as it was before the append (registered after the
+# backup's removal, so it runs first).
+restore_profile() {
     if [ "$EXISTED" -eq 1 ]; then
         cat "$BACKUP" > "$TARGET"
     else
         rm -f "$TARGET"
     fi
-    rm -f "$BACKUP"
 }
-trap cleanup EXIT
+add_cleanup restore_profile
 
 # No `touch` first: GNU coreutils touch opens an existing file O_WRONLY to set its
 # time, which is itself a write-intent open on a persistence path — a third,

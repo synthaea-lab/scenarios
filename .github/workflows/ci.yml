@@ -28,6 +28,8 @@ jobs:
         run: |
           shellcheck --version
           git ls-files -z '*.sh' | xargs -0 shellcheck --severity=warning
+      - name: cleanup registry; no other EXIT trap
+        run: bash tools/test-cleanup.sh
       - name: precondition helpers and exit codes
         run: bash tools/test-preconditions.sh
       - name: fake web server helper

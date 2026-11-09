@@ -18,14 +18,13 @@
 
 set -euo pipefail
 
-D1=""
-D2=""
-# Installed before either directory exists: a failure of the second `mktemp` must not leave
-# the first behind.
-trap '[ -n "$D1" ] && rm -rf "$D1"; [ -n "$D2" ] && rm -rf "$D2"' EXIT
-D1="$(mktemp -d /dev/shm/edr-odd-drop.XXXXXX 2>/dev/null)" || D1="$(mktemp -d /var/tmp/edr-odd-drop.XXXXXX)"
-D2="$(mktemp -d /var/tmp/edr-odd-drop.XXXXXX)"
-[ -d "$D1" ] && [ -d "$D2" ] || { echo "no work directory" >&2; exit 1; }
+. "$(dirname "${BASH_SOURCE[0]}")/../../lib/common.sh"
+
+# Each directory's removal is registered as soon as it exists: a failure of the second
+# `mktemp` must not leave the first behind. /var/tmp when /dev/shm cannot hold one.
+D1="$(mktemp -d /dev/shm/edr-odd-drop.XXXXXX 2>/dev/null)" && add_cleanup rm -rf "$D1" \
+    || make_workdir D1 /var/tmp edr-odd-drop.
+make_workdir D2 /var/tmp edr-odd-drop.
 
 cp "$(command -v bash)" "$D1/kworker-update"
 cp "$(command -v python3)" "$D2/syslogd-helper"

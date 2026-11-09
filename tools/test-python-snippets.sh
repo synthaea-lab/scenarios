@@ -7,11 +7,12 @@
 set -uo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+. "$REPO/lib/common.sh"
 CHECK="$REPO/tools/check-python-snippets.py"
 RUFF="${RUFF:-}"
 failures=0
 work=$(mktemp -d)
-trap 'rm -rf "$work"' EXIT
+add_cleanup rm -rf "$work"
 
 # expect DESCRIPTION WANT_RC WANT_OUTPUT_SUBSTRING SCRIPT_TEXT [CHECK_ARG...] — run the check
 # on one script holding SCRIPT_TEXT.

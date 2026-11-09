@@ -15,11 +15,11 @@
 
 set -euo pipefail
 
+. "$(dirname "${BASH_SOURCE[0]}")/../../lib/common.sh"
+
 BASH_BIN="$(command -v bash)"
-D=""
-trap '[ -n "$D" ] && rm -rf "$D"' EXIT
 mkdir -p "${HOME:?HOME must be set}/.local/share"
-D="$(mktemp -d "$HOME/.local/share/edr-odd-office.XXXXXX")" && [ -d "$D" ] || { D=""; echo "no work directory" >&2; exit 1; }
+make_workdir D "$HOME/.local/share" edr-odd-office.
 
 for name in winword excel outlook; do
     cp "$BASH_BIN" "$D/$name"

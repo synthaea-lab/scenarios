@@ -33,6 +33,17 @@ kill_process_group() {
     kill -- -"$1" 2>/dev/null || true
 }
 
+# kill_process PID — stop one process, tolerating one that has already exited.
+kill_process() {
+    kill "$1" 2>/dev/null || true
+}
+
+# remove_empty_dirs DIR... — remove each DIR, in order, if it is empty; a DIR that
+# is not empty (or not there) is left alone.
+remove_empty_dirs() {
+    rmdir "$@" 2>/dev/null || true
+}
+
 # start_loopback_listener BODY [ARG...] — run BODY as a background listener in
 # its own session (process group) and register that group's teardown.
 #

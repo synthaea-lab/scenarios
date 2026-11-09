@@ -8,11 +8,12 @@
 set -uo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+. "$REPO/lib/common.sh"
 # shellcheck source=../ml-capture/run-json.sh
 . "$REPO/ml-capture/run-json.sh"
 failures=0
 work=$(mktemp -d)
-trap 'rm -rf "$work"' EXIT
+add_cleanup rm -rf "$work"
 
 # expect_record DESCRIPTION WANT_COMPACT_JSON ARG... — write_run_json ARG... must succeed and
 # write WANT_COMPACT_JSON (compared after a compact re-dump, keys in file order).
