@@ -35,6 +35,8 @@
 
 set -uo pipefail
 
+. "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
+
 EXPECT="${EXPECT:?set EXPECT=enforce or EXPECT=observe to match how the agent was started}"
 case "$EXPECT" in enforce | observe) ;; *) echo "EXPECT must be enforce or observe" >&2; exit 2 ;; esac
 CANARY_DIR="${CANARY_DIR:?set CANARY_DIR to the directory listed in [deception] canary_dirs}"
@@ -44,22 +46,20 @@ PAUSE="${PAUSE:-0.04}"                # seconds between renames: a real encrypto
 
 case "$CANARY_DIR" in
   /tmp | /var/tmp | /dev/shm | /tmp/* | /var/tmp/* | /dev/shm/*)
-    echo "CANARY_DIR must not be under /tmp, /var/tmp or /dev/shm: the sensor does not report reads there" >&2
-    exit 2 ;;
+    die_precondition "CANARY_DIR must not be under /tmp, /var/tmp or /dev/shm: the sensor does not report reads there" ;;
 esac
-[ -d "$CANARY_DIR" ] || { echo "$CANARY_DIR is not a directory" >&2; exit 2; }
-command -v python3 >/dev/null || { echo "needs python3" >&2; exit 2; }
+[ -d "$CANARY_DIR" ] || die_precondition "$CANARY_DIR is not a directory"
+require_command python3
 
 # The canaries are the files the agent planted: each starts with the decoy header.
 mapfile -t CANARIES < <(grep -l -m1 '^# SYNTHAEA DECOY' "$CANARY_DIR"/* 2>/dev/null)
 if [ "${#CANARIES[@]}" -eq 0 ]; then
-  echo "no canary in $CANARY_DIR: start the agent with [deception] canary_dirs first" >&2
-  exit 2
+  die_precondition "no canary in $CANARY_DIR: start the agent with [deception] canary_dirs first"
 fi
 echo "canaries found: ${#CANARIES[@]}"
 
 cleanup() { rm -f "$CANARY_DIR"/doc_*.docx "$CANARY_DIR"/doc_*.docx.locked "${ENCRYPTOR_PY:-}"; }
-trap cleanup EXIT
+add_cleanup cleanup
 cleanup
 for i in $(seq 0 $((COUNT - 1))); do : > "$CANARY_DIR/doc_${i}.docx"; done
 echo "created $COUNT throwaway files in $CANARY_DIR"

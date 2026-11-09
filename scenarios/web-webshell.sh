@@ -44,17 +44,19 @@
 
 set -euo pipefail
 
+. "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
+
 BASE=${1:-http://127.0.0.1}
 # The spawning parent's name: nginx by default, `apache2`, `httpd` or `php-fpm8.4` to
 # exercise the other names the lineage rule and the correlator accept.
 FAKE_COMM=${FAKE_COMM:-nginx}
 FAKE_WEBSERVER=/tmp/$FAKE_COMM
 
-command -v curl >/dev/null || { echo "curl is required" >&2; exit 1; }
-curl -s -o /dev/null --max-time 3 "$BASE/" || { echo "no web server answers at $BASE" >&2; exit 1; }
+require_command curl
+require_web_server "$BASE"
 
 cleanup() { rm -f "$FAKE_WEBSERVER"; }
-trap cleanup EXIT
+add_cleanup cleanup
 
 echo "Sending one request per signature to $BASE ..."
 # SQL injection marker in a parameter value

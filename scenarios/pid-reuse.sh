@@ -27,18 +27,17 @@
 
 set -euo pipefail
 
+. "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
+
 MODE="${1:-recycled}"
 
-if [ "$(id -u)" -ne 0 ]; then
-    echo "needs root: it writes /proc/sys/kernel/ns_last_pid" >&2
-    exit 2
-fi
+require_root "it writes /proc/sys/kernel/ns_last_pid"
 
 DIR="$(mktemp -d "$HOME/synthaea-scenario-pid-reuse-XXXXXX")"
 COUNT=22 # a couple past RANSOMWARE_RENAME_THRESHOLD (20) for timing margin
 
 cleanup() { rm -rf "$DIR"; }
-trap cleanup EXIT
+add_cleanup cleanup
 
 echo "Creating $COUNT throwaway files in $DIR..."
 for i in $(seq 0 $((COUNT - 1))); do

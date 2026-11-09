@@ -22,7 +22,9 @@
 
 set -euo pipefail
 
-[ "$(id -u)" -eq 0 ] || { echo "run as root (writes under /var/log/) — sudo $0" >&2; exit 1; }
+. "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
+
+require_root "it writes under /var/log/"
 
 LOGFILE=/var/log/synthaea-scenario-test.log
 
@@ -31,7 +33,7 @@ LOGFILE=/var/log/synthaea-scenario-test.log
 # probe fires at syscall entry, before the kernel knows whether the file
 # exists, so a stray second unlink here would count as a second T1070.002.
 cleanup() { [ -e "$LOGFILE" ] && rm -f "$LOGFILE"; true; }
-trap cleanup EXIT
+add_cleanup cleanup
 
 echo "Creating a throwaway log file ($LOGFILE)..."
 echo "harmless test content, $(date -u +%FT%TZ)" > "$LOGFILE"
