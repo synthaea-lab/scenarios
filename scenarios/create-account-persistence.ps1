@@ -56,11 +56,16 @@
 .LINK
     ATT&CK T1136.001 -- https://attack.mitre.org/techniques/T1136/001/
 #>
+[CmdletBinding()]
+param(
+    # The rig's catalog (runner/scenarios-windows.conf) expects 3 alerts: keep the default.
+    [ValidateRange(1, 100)][int]$Iterations = 3
+)
 
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "common.ps1")
+Set-StrictMode -Version Latest
 
-$Iterations = 3
 $AccountPrefix = "synthaea-demo-user"
 # Random password per iteration -- no shared password between accounts, and each
 # is destroyed in the `finally` block so the string never survives the scenario.

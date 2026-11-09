@@ -38,6 +38,7 @@
 .LINK
     https://github.com/synthaea-lab/edr-agent/issues/39
 #>
+[CmdletBinding()]
 param(
     [string]$Image = "mcr.microsoft.com/windows/nanoserver:ltsc2025",
     [string]$AgentExe = "",
@@ -46,6 +47,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "common.ps1")
+Set-StrictMode -Version Latest
 
 $Name = "synthaea371"
 $TraceName = "synthaea371-silo"
@@ -135,7 +137,8 @@ function Get-SiloTraceRecords([string]$Dir) {
         $eid = [int]$e.System.EventID
         if ($eid -lt 22 -or $eid -gt 26) { continue }
         $data = @{}
-        foreach ($d in $e.EventData.Data) { $data[$d.Name] = ([string]$d.'#text').Trim() }
+        # InnerText, not '#text': an empty <Data/> has no '#text' and strict mode throws.
+        foreach ($d in $e.EventData.Data) { $data[$d.Name] = $d.InnerText.Trim() }
         $records += [pscustomobject]@{ Eid = $eid; JobId = $data["Job ID"]; ContainerId = $data["Container ID"] }
     }
     Write-Host ""
@@ -144,11 +147,17 @@ function Get-SiloTraceRecords([string]$Dir) {
     $records
 }
 
+# The container id of an exec event, or $null for a host process (the agent
+# omits meta.container there).
+function Get-ExecContainerId($Exec) {
+    Get-OptionalProperty (Get-OptionalProperty $Exec.meta "container") "id"
+}
+
 function Test-Scenario($Agent, $Run, $SiloIds, $SiloRecords) {
     $execs = @(Get-Content -LiteralPath $Agent.Events | Where-Object { $_.StartsWith('{"type":"exec"') } |
         ForEach-Object { $_ | ConvertFrom-Json })
-    $inContainer = @($execs | Where-Object { $_.meta.container.id -eq $Run.Id })
-    $provisional = @($execs | Where-Object { "$($_.meta.container.id)".StartsWith("silo:") })
+    $inContainer = @($execs | Where-Object { (Get-ExecContainerId $_) -eq $Run.Id })
+    $provisional = @($execs | Where-Object { "$(Get-ExecContainerId $_)".StartsWith("silo:") })
     $results = @()
     $results += [pscustomobject]@{
         Check = "exec events from the container carry its id"
@@ -164,7 +173,7 @@ function Test-Scenario($Agent, $Run, $SiloIds, $SiloRecords) {
     $hostExec = @($execs | Where-Object { $_.meta.pid -eq $Run.HostPid })
     $results += [pscustomobject]@{
         Check = "the host's hostname.exe has no container"
-        Pass = ($hostExec.Count -ge 1) -and (@($hostExec | Where-Object { $_.meta.container }).Count -eq 0)
+        Pass = ($hostExec.Count -ge 1) -and (@($hostExec | Where-Object { Get-ExecContainerId $_ }).Count -eq 0)
         Detail = "$($hostExec.Count) event(s) for pid $($Run.HostPid)"
     }
     $jobIds = @($SiloRecords | ForEach-Object { $_.JobId } | Select-Object -Unique)
@@ -175,7 +184,7 @@ function Test-Scenario($Agent, $Run, $SiloIds, $SiloRecords) {
     }
     Write-Host ""
     Write-Host ("info: {0} exec event(s) carried a provisional silo:<n> id: {1}" -f $provisional.Count,
-        (($provisional | ForEach-Object { "$($_.meta.comm)=$($_.meta.container.id)" } | Select-Object -Unique) -join ', '))
+        (($provisional | ForEach-Object { "$($_.meta.comm)=$(Get-ExecContainerId $_)" } | Select-Object -Unique) -join ', '))
     foreach ($r in $results) {
         $verdict = if ($r.Pass) { "PASS" } else { "FAIL" }
         Write-Host ("{0}  {1}: {2}" -f $verdict, $r.Check, $r.Detail) -ForegroundColor $(if ($r.Pass) { "Green" } else { "Red" })

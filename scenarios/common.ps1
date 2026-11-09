@@ -60,6 +60,23 @@ function Invoke-NativeCleanup {
     }
 }
 
+function Get-OptionalProperty {
+    <#
+    .SYNOPSIS
+        The value of property $Name on $InputObject, or $null when $InputObject
+        is $null or has no such property. Under Set-StrictMode a missing
+        property throws, and the agent's JSON leaves out unset optional fields
+        (e.g. meta.container on a host process).
+    #>
+    param(
+        [AllowNull()]$InputObject,
+        [Parameter(Mandatory)][string]$Name
+    )
+    if ($null -eq $InputObject) { return $null }
+    $property = $InputObject.PSObject.Properties[$Name]
+    if ($property) { $property.Value } else { $null }
+}
+
 function Get-FarFutureDate {
     <#
     .SYNOPSIS
