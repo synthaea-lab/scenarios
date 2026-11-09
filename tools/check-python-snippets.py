@@ -29,6 +29,8 @@ Run from the repository root:
 Exits non-zero listing every problem. CI runs it on every push.
 """
 
+from __future__ import annotations
+
 import argparse
 import os
 import re
@@ -126,7 +128,9 @@ def ruff_problems(ruff: str, snippets: list[Snippet]) -> list[str]:
             names = {}
             for number, snippet in enumerate(s for s in snippets if s.kind == kind):
                 # The scratch file name carries the script path, so ruff's report points at it.
-                name = f"{snippet.path.replace(os.sep, '__')}.{kind.strip('-')}{number}.py"
+                # git prints `/` on every OS; also fold the native separator (`\` on Windows).
+                flat = snippet.path.replace("/", "__").replace(os.sep, "__")
+                name = f"{flat}.{kind.strip('-')}{number}.py"
                 scratch_path = os.path.join(scratch, name)
                 with open(scratch_path, "w", encoding="utf-8") as f:
                     f.write("\n" * (snippet.line - 1) + snippet.source)
