@@ -27,6 +27,8 @@ set -euo pipefail
 
 . "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
 
+# Fixed paths, on purpose: the marker path is compiled into the constructor below, and
+# the alert names the library path. They are the stimulus (do not switch to mktemp).
 SRC=/tmp/edr-test-preload.c
 LIB=/tmp/edr-test-preload.so
 MARKER=/tmp/edr-test-preload.marker
