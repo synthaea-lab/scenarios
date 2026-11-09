@@ -20,6 +20,7 @@ PORT=4444
 CONNECTIONS=4
 INTERVAL=2
 
+# shellcheck disable=SC2016  # $1... are the inner bash's positional parameters
 start_loopback_listener '
   while true; do
     nc -l -p "$1" >/dev/null 2>&1 || nc -l "$1" >/dev/null 2>&1

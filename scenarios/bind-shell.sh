@@ -38,6 +38,7 @@ FIFO="$WORKDIR/shell.fifo"
 mkfifo "$FIFO"
 add_cleanup rm -rf "$WORKDIR"
 
+# shellcheck disable=SC2016  # $1... are the inner bash's positional parameters
 start_loopback_listener '
   fifo=$1 port=$2
   sh -i <"$fifo" 2>&1 | { nc -l -s 127.0.0.1 -p "$port" 2>/dev/null || nc -l 127.0.0.1 "$port"; } >"$fifo"

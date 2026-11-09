@@ -22,12 +22,15 @@ jobs:
           persist-credentials: false
       - name: bash -n on every shell script
         run: git ls-files -z '*.sh' | xargs -0 -n 1 bash -n
-      # Warnings and errors only: the info-level SC2016 notes are single-quoted `$` meant
-      # literally (a command line handed to another shell).
       - name: shellcheck
         run: |
           shellcheck --version
           git ls-files -z '*.sh' | xargs -0 shellcheck --severity=warning
+      # SC2016 is info-level, so the step above does not see it. A single-quoted `$` meant
+      # literally (a body handed to an inner bash, a PHP payload) carries a justified
+      # `# shellcheck disable=SC2016`; anything else is a quoting bug.
+      - name: shellcheck SC2016 (literal `$` in single quotes is justified)
+        run: git ls-files -z '*.sh' | xargs -0 shellcheck --include=SC2016
       - name: cleanup registry; no other EXIT trap
         run: bash tools/test-cleanup.sh
       - name: precondition helpers and exit codes

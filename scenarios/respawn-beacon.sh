@@ -31,6 +31,7 @@ set -euo pipefail
 PORT=4445
 RESPAWNS=4
 
+# shellcheck disable=SC2016  # $1... are the inner bash's positional parameters
 start_loopback_listener '
   while true; do
     nc -l -p "$1" -q1 >/dev/null 2>&1 || nc -l "$1" >/dev/null 2>&1
