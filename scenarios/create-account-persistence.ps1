@@ -30,10 +30,10 @@
 
 .NOTES
     Usage:
-        1) terminal A (as Administrator):
+        1) terminal A (as Administrator, in the agent checkout):
              target\release\agent.exe run
-        2) terminal B (as Administrator -- net user /add requires it):
-             powershell -ExecutionPolicy Bypass -File lab\scenarios\create-account-persistence.ps1
+        2) terminal B, in this repository (as Administrator -- net user /add requires it):
+             powershell -ExecutionPolicy Bypass -File scenarios\create-account-persistence.ps1
         3) expected: exactly one alert per iteration --
              T1136.001 -- account=synthaea-demo-user<N> pid=<id>: local account
              persistence created -- sid: S-1-5-21-...

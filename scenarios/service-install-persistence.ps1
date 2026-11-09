@@ -24,10 +24,10 @@
 
 .NOTES
     Usage:
-        1) terminal A (as Administrator):
+        1) terminal A (as Administrator, in the agent checkout):
              target\release\agent.exe run
-        2) terminal B (as Administrator -- sc.exe create requires it):
-             powershell -ExecutionPolicy Bypass -File lab\scenarios\service-install-persistence.ps1
+        2) terminal B, in this repository (as Administrator -- sc.exe create requires it):
+             powershell -ExecutionPolicy Bypass -File scenarios\service-install-persistence.ps1
         3) expected: exactly one alert per iteration --
              T1543.003 -- service=SynthaeaDemoSvc<N> pid=<id>: service
              persistence installed -- image path: C:\Windows\System32\notepad.exe

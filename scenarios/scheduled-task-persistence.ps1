@@ -23,10 +23,10 @@
 
 .NOTES
     Usage:
-        1) terminal A (as Administrator):
+        1) terminal A (as Administrator, in the agent checkout):
              target\release\agent.exe run
-        2) terminal B (as Administrator -- schtasks.exe /Create requires it):
-             powershell -ExecutionPolicy Bypass -File lab\scenarios\scheduled-task-persistence.ps1
+        2) terminal B, in this repository (as Administrator -- schtasks.exe /Create requires it):
+             powershell -ExecutionPolicy Bypass -File scenarios\scheduled-task-persistence.ps1
         3) expected: exactly one alert per iteration --
              T1053.005 -- task=SynthaeaDemoTask<N> pid=<id>: scheduled task
              persistence created -- action path: C:\Windows\System32\notepad.exe

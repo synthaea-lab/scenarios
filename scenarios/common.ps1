@@ -3,7 +3,7 @@
     Helpers shared by the Windows scenarios, dot-sourced by each of them.
 
 .DESCRIPTION
-    Every .ps1 here and in the agent repo's demo/ must run on a stock Windows PowerShell 5.1
+    Every .ps1 here must run on a stock Windows PowerShell 5.1
     under any locale (#433), which rules out three things:
       - Non-ASCII characters. PowerShell 5.1 reads a BOM-less file as the ANSI
         code page, and an em dash decodes to a closing smart quote that breaks

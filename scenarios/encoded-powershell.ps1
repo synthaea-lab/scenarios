@@ -17,10 +17,10 @@
 
 .NOTES
     Usage:
-        1) terminal A (as Administrator):
+        1) terminal A (as Administrator, in the agent checkout):
              target\release\agent.exe run
-        2) terminal B:
-             powershell -ExecutionPolicy Bypass -File lab\scenarios\encoded-powershell.ps1
+        2) terminal B, in this repository:
+             powershell -ExecutionPolicy Bypass -File scenarios\encoded-powershell.ps1
         3) expected: exactly one alert per iteration --
              T1059.001 -- pid=<ps> comm=powershell.exe: PowerShell EncodedCommand
              invocation: powershell.exe -EncodedCommand VwByAGkAdABlAC0ASABvAHMAdAAgAGgAZQBsAGwAbwA=
