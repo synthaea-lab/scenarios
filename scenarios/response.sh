@@ -10,7 +10,7 @@
 # verdict (crates/correlator), and beacon.sh's four connections 2s apart from four
 # separate `nc` pids do not reach it. A single long-lived process that reconnects
 # every second does (measured through the real detection path in
-# agent/src/sink.rs's `a_beacon_with_a_dropped_payload_...` tests, in-process;
+# apps/agent/src/sink/tests.rs's `a_beacon_with_a_dropped_payload_...` tests, in-process;
 # this script is the same stream on a real kernel).
 #
 # Setup:

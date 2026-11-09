@@ -9,7 +9,7 @@
 # What it exercises:
 #   - LISTENER-DRIFT (crates/rules/src/state.rs, check_listen_port_drift): a
 #     listener absent from the agent's startup snapshot. The rule reads the
-#     netlink sock_diag poll (NETLINK_POLL_INTERVAL, 10s, agent/src/commands/
+#     netlink sock_diag poll (NETLINK_POLL_INTERVAL, 10s, apps/agent/src/commands/
 #     linux.rs), so the listener stays up LISTEN_HOLD seconds before the client
 #     connects, long enough for at least one poll to see it.
 #   - eBPF socket telemetry from #263 (SocketBind, SocketListen, SocketAccept

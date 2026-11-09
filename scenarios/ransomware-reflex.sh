@@ -3,7 +3,7 @@
 # canaries and then renames its way through the directory must be killed before it has
 # processed more than N files.
 #
-# The reflex (agent/src/ransomware_join.rs) kills a process that raised the ransomware burst
+# The reflex (apps/agent/src/ransomware_join.rs) kills a process that raised the ransomware burst
 # rule (T1486: RANSOMWARE_RENAME_THRESHOLD = 20 renames in 5 s) AND touched a planted canary
 # within 60 s. So the earliest it can act is the 20th rename; N must be at least that plus
 # the detection latency (sensor, ring buffer, drain, join). MAX_ENCRYPTED defaults to 60.
