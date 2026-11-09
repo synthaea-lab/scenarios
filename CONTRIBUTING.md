@@ -50,6 +50,11 @@ Source the shared helpers instead of re-implementing them:
 The process tree, names, arguments and paths of a scenario are the behavior under test: do not
 add wrapper shells or subshells around the commands that matter.
 
+Keep a scenario's Python inline, as a `<<'PY'` heredoc or a single-quoted `python3 -c '...'`
+string: moving it to a `.py` file would change the argv the agent sees. Tag every Python heredoc
+`PY`. CI compiles and lints that code with `tools/check-python-snippets.py`; run it locally with
+`python3 tools/check-python-snippets.py --ruff ruff`.
+
 ### PowerShell scenarios
 
 Windows scenarios must run on a stock Windows PowerShell 5.1 under any locale. Dot-source
