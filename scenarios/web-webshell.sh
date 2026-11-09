@@ -55,8 +55,7 @@ FAKE_WEBSERVER=/tmp/$FAKE_COMM
 require_command curl
 require_web_server "$BASE"
 
-cleanup() { rm -f "$FAKE_WEBSERVER"; }
-add_cleanup cleanup
+add_cleanup rm -f "$FAKE_WEBSERVER"
 
 echo "Sending one request per signature to $BASE ..."
 # SQL injection marker in a parameter value
@@ -72,12 +71,7 @@ curl -s -o /dev/null "$BASE/index.html"
 # pairing under test, and a request read before the shell does not count since #807.
 sleep 3
 
-SH_TARGET=$(readlink -f /bin/sh 2>/dev/null || echo /bin/sh)
-if [[ "$SH_TARGET" == *busybox* ]]; then
-    cp "$BASH" "$FAKE_WEBSERVER"
-else
-    cp /bin/sh "$FAKE_WEBSERVER"
-fi
+make_fake_webserver "$FAKE_WEBSERVER"
 echo "Spawning a shell from a process named '$FAKE_COMM' ($FAKE_WEBSERVER) ..."
 # The subshell forces the fork that `sh -c` would otherwise skip (see lineage.sh).
 "$FAKE_WEBSERVER" -c '(/bin/sh -c "id >/dev/null")'
