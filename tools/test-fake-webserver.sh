@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Checks make_fake_webserver in lib/common.sh: which binary it copies (the shell, or
-# $BASH when the shell is busybox), and that the copy can run the lineage scenarios'
-# spawn command. Runs unprivileged and writes only to a temporary directory.
+# $BASH when the shell is busybox), that the copy can run the lineage scenarios'
+# spawn command, and spawn_shells_from's argv and parent. Runs unprivileged and writes only to a temporary directory.
 #
 #   tools/test-fake-webserver.sh
 
@@ -45,6 +45,30 @@ expect_copy_of "$BASH" "$work/httpd" "copies \$BASH when the shell resolves to b
 ln -s /bin/sh "$work/dash-link"
 make_fake_webserver "$work/apache2" "$work/dash-link"
 expect_copy_of /bin/sh "$work/apache2" "copies a non-busybox shell through its symlink"
+
+# spawn_shells_from: FAKE is run ITERATIONS times with the documented argv, as a
+# direct child of the calling shell (the loop must not run in a subshell).
+cat > "$work/recorder" <<'SH'
+#!/bin/sh
+printf '%s|%s|%s\n' "$PPID" "$1" "$2" >> "${0%/*}/spawn.log"
+SH
+chmod +x "$work/recorder"
+progress=$(spawn_shells_from "$work/recorder" 2 | tr '\n' ';')
+if [ "$progress" = "  iteration 1 done;  iteration 2 done;" ]; then
+    echo "ok: spawn_shells_from prints one progress line per iteration"
+else
+    echo "FAIL: spawn_shells_from progress was: $progress"
+    failures=$((failures + 1))
+fi
+rm -f "$work/spawn.log"
+spawn_shells_from "$work/recorder" 2 >/dev/null
+expected="$$|-c|(/bin/sh -c \"id >/dev/null\")"
+if [ "$(sort -u "$work/spawn.log")" = "$expected" ] && [ "$(wc -l < "$work/spawn.log")" -eq 2 ]; then
+    echo "ok: spawn_shells_from runs FAKE -c '(/bin/sh -c ...)' from the calling shell"
+else
+    echo "FAIL: spawn_shells_from spawned: $(cat "$work/spawn.log"); expected twice: $expected"
+    failures=$((failures + 1))
+fi
 
 if [ "$failures" -ne 0 ]; then
     echo "$failures check(s) failed."
