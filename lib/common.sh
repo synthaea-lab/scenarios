@@ -51,3 +51,33 @@ start_loopback_listener() {
     setsid bash -c "$body" bash "$@" &
     add_cleanup kill_process_group "$!"
 }
+
+# Precondition checks. A scenario that cannot run here (not root, a tool or a
+# service missing) exits with PRECONDITION_EXIT_CODE, so a caller can tell "the
+# host is not set up for this" (2) from "the scenario ran and its self-check
+# failed" (1). The message carries the ERROR token the rig runner quotes from a
+# failing scenario's log.
+readonly PRECONDITION_EXIT_CODE=2
+
+# die_precondition MESSAGE — report an unmet precondition and exit.
+die_precondition() {
+    echo "ERROR: precondition not met: $*" >&2
+    exit "$PRECONDITION_EXIT_CODE"
+}
+
+# require_root REASON — exit unless running as root; REASON says why root is
+# needed (e.g. "it writes under /var/log").
+require_root() {
+    [ "$(id -u)" -eq 0 ] || die_precondition "run as root ($1)"
+}
+
+# require_command COMMAND [HINT] — exit unless COMMAND is on PATH; HINT, if
+# given, says how to install it.
+require_command() {
+    command -v "$1" >/dev/null 2>&1 || die_precondition "$1 not found${2:+ ($2)}"
+}
+
+# require_web_server URL — exit unless a web server answers at URL.
+require_web_server() {
+    curl -s -o /dev/null --max-time 3 "$1/" || die_precondition "no web server answers at $1"
+}

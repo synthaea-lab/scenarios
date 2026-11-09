@@ -21,7 +21,9 @@
 
 set -u
 
-[ "$(id -u)" -eq 0 ] || { echo "run as root: sudo $0 <out-dir>" >&2; exit 1; }
+. "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
+
+require_root "sudo $0 <out-dir>"
 OUT="${1:?usage: $0 <out-dir>}"
 mkdir -p "$OUT"
 SCENARIO_DIR="$(cd "$(dirname "$0")/../scenarios" && pwd)"

@@ -30,6 +30,18 @@ sudo ./target/release/agent run --standalone --content-dir <rules checkout paren
 The scenario's `.yaml` sidecar says which alert to expect in `/tmp/alerts.ndjson`. Some scenarios need
 root or extra setup; their header comment says so.
 
+### Exit codes
+
+| Code | Meaning |
+| --- | --- |
+| 0 | The scenario ran (and, where it checks its own outcome, the check passed) |
+| 1 | The scenario ran and its self-check failed |
+| 2 | Precondition not met: the host is not set up for this scenario (not root, a tool or service missing, a wrong setting); nothing was attempted |
+
+The shell scenarios report an unmet precondition through `require_root`, `require_command`,
+`require_web_server` or `die_precondition` in `lib/common.sh`, which print an
+`ERROR: precondition not met: ...` line on stderr; `tools/test-preconditions.sh` checks them.
+
 ## Byte-exact sidecars
 
 The ML pipeline ([synthaea-lab/ml](https://github.com/synthaea-lab/ml)) binds each trained model's record

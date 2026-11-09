@@ -35,7 +35,9 @@
 
 set -euo pipefail
 
-CLIENT=$(command -v mariadb || command -v mysql) || { echo "no mariadb/mysql client" >&2; exit 1; }
+. "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
+
+CLIENT=$(command -v mariadb || command -v mysql) || die_precondition "no mariadb/mysql client found"
 USER_NAME=${1:-edr_lab_victim}
 
 echo "Sending 6 failed logins as '$USER_NAME' (T1110 Brute Force)..."

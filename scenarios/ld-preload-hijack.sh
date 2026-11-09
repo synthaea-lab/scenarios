@@ -25,17 +25,16 @@
 
 set -euo pipefail
 
+. "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
+
 SRC=/tmp/edr-test-preload.c
 LIB=/tmp/edr-test-preload.so
 MARKER=/tmp/edr-test-preload.marker
 
 cleanup() { rm -f "$SRC" "$LIB" "$MARKER"; }
-trap cleanup EXIT
+add_cleanup cleanup
 
-command -v cc >/dev/null 2>&1 || {
-    echo "cc not found — install a C compiler (Alpine: apk add build-base; Debian: apt install build-essential) and retry." >&2
-    exit 1
-}
+require_command cc "install a C compiler: Alpine apk add build-base, Debian apt install build-essential"
 
 cat > "$SRC" <<'C'
 /* Proves the LD_PRELOAD constructor ran — nothing else. No hooked symbols,

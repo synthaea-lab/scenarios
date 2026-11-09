@@ -44,7 +44,7 @@ CONNECTIONS="${CONNECTIONS:-30}"   # 30s of beaconing: enough for the verdict, f
 PAYLOAD="${PAYLOAD:-/tmp/synthaea-response-payload.bin}"
 MARKER="SYNTHAEA-RESPONSE-SCENARIO-MARKER"
 
-command -v nc >/dev/null || { echo "needs nc for the listener" >&2; exit 2; }
+require_command nc "the listener needs it"
 
 add_cleanup rm -f "$PAYLOAD"
 start_loopback_listener '

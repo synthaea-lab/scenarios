@@ -25,9 +25,11 @@
 
 set -euo pipefail
 
+. "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
+
 BASE=${1:-http://127.0.0.1:8081}
-command -v curl >/dev/null || { echo "curl is required" >&2; exit 1; }
-curl -s -o /dev/null --max-time 3 "$BASE/" || { echo "no web server answers at $BASE" >&2; exit 1; }
+require_command curl
+require_web_server "$BASE"
 
 echo "Sending 20 requests to a vhost whose log is not in combined format ..."
 for i in $(seq 1 20); do curl -s -o /dev/null "$BASE/page$i"; done
