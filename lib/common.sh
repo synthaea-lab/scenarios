@@ -81,3 +81,30 @@ require_command() {
 require_web_server() {
     curl -s -o /dev/null --max-time 3 "$1/" || die_precondition "no web server answers at $1"
 }
+
+# Fake web server: a copy of a real shell binary under a web server's name, so the
+# processes it runs have a parent whose comm (the file's basename) is "nginx" or the
+# like. Used by lineage, prevalence-lineage and web-webshell.
+#
+# make_fake_webserver PATH [SH] — copy the shell binary SH (default /bin/sh) to PATH.
+# If SH resolves to busybox, copy $BASH instead: busybox is a multi-call binary that
+# dispatches on argv[0], so a copy named "nginx" fails with "applet not found", and
+# $BASH is the standalone interpreter running this script.
+#
+# It only copies, in the caller's shell: no subshell, so readlink and cp stay direct
+# children of the scenario. The caller spawns from
+# PATH itself, so the spawned shells' parent and argv stay exactly what the scenario
+# documents, and it registers the removal of PATH (or of its directory). Spawn with
+# an explicit subshell,
+#   "$PATH" -c '(/bin/sh -c "id >/dev/null")'
+# because bash and dash exec a `-c` body that is one simple command in place instead
+# of forking, which would leave the child's ppid on the scenario.
+make_fake_webserver() {
+    local sh=${2:-/bin/sh} target
+    target=$(readlink -f "$sh" 2>/dev/null || echo "$sh")
+    if [[ "$target" == *busybox* ]]; then
+        cp "$BASH" "$1"
+    else
+        cp "$sh" "$1"
+    fi
+}

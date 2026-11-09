@@ -30,6 +30,8 @@ jobs:
           git ls-files -z '*.sh' | xargs -0 shellcheck --severity=warning
       - name: precondition helpers and exit codes
         run: bash tools/test-preconditions.sh
+      - name: fake web server helper
+        run: bash tools/test-fake-webserver.sh
 
   powershell-ascii:
     runs-on: ubuntu-latest

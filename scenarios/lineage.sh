@@ -15,13 +15,13 @@
 #
 # Busybox userlands (Alpine): /bin/sh is a symlink to the busybox multi-call binary,
 # which dispatches by argv[0] — copying it to a file named "nginx" breaks its own
-# applet lookup ("applet not found"), so this can't just `cp /bin/sh`. We fall back
-# to $BASH there instead (a real standalone binary, unaffected by that dispatch) —
-# the interpreter actually running this script, not a hardcoded /bin/bash path: the
+# applet lookup ("applet not found"), so make_fake_webserver (lib/common.sh) copies
+# $BASH there instead (a real standalone binary, unaffected by that dispatch) — the
+# interpreter actually running this script, not a hardcoded /bin/bash path: the
 # script's own shebang already requires bash, so a "no bash available" branch could
 # never be reached anyway (#430 review).
 #
-# Both branches wrap the inner shell in an explicit subshell (parens): bash and dash
+# Both cases wrap the inner shell in an explicit subshell (parens): bash and dash
 # both tail-call-optimize a `-c` script whose entire body is one simple command,
 # self-exec'ing in place rather than forking, which would leave the child's ppid
 # pointing at this script instead of at the nginx-named process. The subshell forces
@@ -42,18 +42,14 @@
 
 set -euo pipefail
 
+. "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
+
+# Fixed path: rig's lineage validation greps for /tmp/nginx.
 FAKE_WEBSERVER=/tmp/nginx
 ITERATIONS=3
 
-cleanup() { rm -f "$FAKE_WEBSERVER"; }
-trap cleanup EXIT
-
-SH_TARGET=$(readlink -f /bin/sh 2>/dev/null || echo /bin/sh)
-if [[ "$SH_TARGET" == *busybox* ]]; then
-    cp "$BASH" "$FAKE_WEBSERVER"
-else
-    cp /bin/sh "$FAKE_WEBSERVER"
-fi
+add_cleanup rm -f "$FAKE_WEBSERVER"
+make_fake_webserver "$FAKE_WEBSERVER"
 INNER_CMD='(/bin/sh -c "id >/dev/null")'
 
 echo "Spawning $ITERATIONS shells from a process named 'nginx' ($FAKE_WEBSERVER)..."

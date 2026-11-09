@@ -25,6 +25,8 @@
 
 set -euo pipefail
 
+. "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
+
 TAG="${TAG:?set TAG, e.g. TAG=shared}"
 case "$TAG" in *[!A-Za-z0-9_-]*) echo "TAG must be [A-Za-z0-9_-]+" >&2; exit 2 ;; esac
 DIR="/tmp/prevalence-$TAG"
@@ -32,16 +34,10 @@ FAKE_WEBSERVER="$DIR/nginx"
 ITERATIONS=3
 
 mkdir -p "$DIR"
-trap 'rm -rf "$DIR"' EXIT
+add_cleanup rm -rf "$DIR"
 
-# See lineage.sh: busybox dispatches on argv[0], so use bash there; the explicit subshell
-# forces the fork that a tail-called `-c` would skip.
-SH_TARGET=$(readlink -f /bin/sh 2>/dev/null || echo /bin/sh)
-if [[ "$SH_TARGET" == *busybox* ]]; then
-    cp "$BASH" "$FAKE_WEBSERVER"
-else
-    cp /bin/sh "$FAKE_WEBSERVER"
-fi
+# See lineage.sh: the explicit subshell forces the fork that a tail-called `-c` would skip.
+make_fake_webserver "$FAKE_WEBSERVER"
 INNER_CMD='(/bin/sh -c "id >/dev/null")'
 
 echo "TAG=$TAG: spawning $ITERATIONS shells from $FAKE_WEBSERVER..."
