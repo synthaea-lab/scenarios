@@ -37,8 +37,7 @@ set -uo pipefail
 
 . "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
 
-EXPECT="${EXPECT:?set EXPECT=enforce or EXPECT=observe to match how the agent was started}"
-case "$EXPECT" in enforce | observe) ;; *) echo "EXPECT must be enforce or observe" >&2; exit 2 ;; esac
+require_expect_mode
 CANARY_DIR="${CANARY_DIR:?set CANARY_DIR to the directory listed in [deception] canary_dirs}"
 COUNT="${COUNT:-300}"                 # files the encryptor would process if nothing stopped it
 MAX_ENCRYPTED="${MAX_ENCRYPTED:-60}"  # the acceptance bound N (see above)
@@ -90,15 +89,13 @@ killed=no
 [ "$RC" -eq 137 ] && killed=yes   # 128 + SIGKILL
 echo "encryptor exit status: $RC (killed: $killed); files renamed: $renamed of $COUNT"
 
-status=0
 if [ "$EXPECT" = enforce ]; then
-  [ "$killed" = yes ] || { echo "FAIL: expected the encryptor to be SIGKILLed" >&2; status=1; }
+  [ "$killed" = yes ] || check_fail "expected the encryptor to be SIGKILLed"
   [ "$renamed" -le "$MAX_ENCRYPTED" ] \
-    || { echo "FAIL: $renamed files renamed before the kill, more than N=$MAX_ENCRYPTED" >&2; status=1; }
+    || check_fail "$renamed files renamed before the kill, more than N=$MAX_ENCRYPTED"
 else
-  [ "$killed" = no ] || { echo "FAIL: observe-only must not kill the encryptor" >&2; status=1; }
+  [ "$killed" = no ] || check_fail "observe-only must not kill the encryptor"
   [ "$renamed" -eq "$COUNT" ] \
-    || { echo "FAIL: observe-only must let the encryptor finish ($renamed of $COUNT)" >&2; status=1; }
+    || check_fail "observe-only must let the encryptor finish ($renamed of $COUNT)"
 fi
-[ "$status" -eq 0 ] && echo "OK ($EXPECT): this script's side matches; check the T1083 canary detection, T1486 and RESPONSE-KILL in the agent's alerts.ndjson"
-exit "$status"
+exit_with_checks "OK ($EXPECT): this script's side matches; check the T1083 canary detection, T1486 and RESPONSE-KILL in the agent's alerts.ndjson"

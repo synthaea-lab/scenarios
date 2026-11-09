@@ -36,8 +36,7 @@ set -uo pipefail
 
 . "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
 
-EXPECT="${EXPECT:?set EXPECT=enforce or EXPECT=observe to match how the agent was started}"
-case "$EXPECT" in enforce | observe) ;; *) echo "EXPECT must be enforce or observe" >&2; exit 2 ;; esac
+require_expect_mode
 
 PORT="${PORT:-4444}"
 CONNECTIONS="${CONNECTIONS:-30}"   # 30s of beaconing: enough for the verdict, far more than needed
@@ -83,13 +82,11 @@ payload=present
 echo "implant exit status: $IMPLANT_RC (killed: $killed)"
 echo "payload: $payload"
 
-status=0
 if [ "$EXPECT" = enforce ]; then
-  [ "$killed" = yes ]    || { echo "FAIL: expected the implant to be SIGKILLed" >&2; status=1; }
-  [ "$payload" = gone ]  || { echo "FAIL: expected the payload to be quarantined" >&2; status=1; }
+  [ "$killed" = yes ]      || check_fail "expected the implant to be SIGKILLed"
+  [ "$payload" = gone ]    || check_fail "expected the payload to be quarantined"
 else
-  [ "$killed" = no ]     || { echo "FAIL: observe-only must not kill the implant" >&2; status=1; }
-  [ "$payload" = present ] || { echo "FAIL: observe-only must not move the payload" >&2; status=1; }
+  [ "$killed" = no ]       || check_fail "observe-only must not kill the implant"
+  [ "$payload" = present ] || check_fail "observe-only must not move the payload"
 fi
-[ "$status" -eq 0 ] && echo "OK ($EXPECT): this script's side matches; check RESPONSE-KILL / RESPONSE-QUARANTINE in the agent's alerts.ndjson"
-exit "$status"
+exit_with_checks "OK ($EXPECT): this script's side matches; check RESPONSE-KILL / RESPONSE-QUARANTINE in the agent's alerts.ndjson"
