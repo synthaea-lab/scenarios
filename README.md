@@ -131,6 +131,8 @@ explains the rule.
 
 Project documentation is at [synthaea.com/en/docs](https://www.synthaea.com/en/docs).
 
+Technical documentation for this repository is in [docs/](docs/README.md).
+
 ## Contributing
 
 New scenarios and fixes are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) describes how a scenario
