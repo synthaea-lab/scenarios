@@ -61,55 +61,17 @@ $Url = "http://localhost:$Port/payload284.exe"
 
 function Start-BitsAgent {
     Assert-Administrator "-AgentExe needs an elevated PowerShell: the agent's ETW session needs Administrator."
-    $dir = $OutDir
-    if (-not $dir) { $dir = Join-Path $env:TEMP ("synthaea-lab-validation\bits-" + (Get-Date -Format "yyyyMMdd-HHmmss")) }
-    Start-ScenarioAgent -AgentExe $AgentExe -Dir $dir -PipeName "synthaea-lab-bits"
-}
-
-function Test-ScenarioAgent($Agent) {
-    $jobs = @(Get-Content -LiteralPath $Agent.Events | Where-Object { $_.StartsWith('{"type":"bits_job"') } |
-        ForEach-Object { $_ | ConvertFrom-Json })
-    $ours = @($jobs | Where-Object { $_.job_title -eq $JobName })
-    $states = ($ours | ForEach-Object { $_.state }) -join ","
-    $results = @()
-    $results += [pscustomobject]@{
-        Check = "bits_job file_added + completed for $JobName"
-        Pass = ($states -eq "file_added,completed") -and (@($ours | Where-Object { $_.meta.comm -ne "bitsadmin.exe" }).Count -eq 0)
-        Detail = "states=[$states] comm=[$(($ours | ForEach-Object { $_.meta.comm } | Select-Object -Unique) -join ',')] ($($jobs.Count) bits_job events in all)"
-    }
-    $t1197 = @()
-    if (Test-Path $Agent.Alerts) {
-        $t1197 = @(Get-Content -LiteralPath $Agent.Alerts | Where-Object { $_ } | ForEach-Object { $_ | ConvertFrom-Json } |
-            Where-Object { $_.technique -eq "T1197" -and $_.message -match "payload284\.exe" })
-    }
-    $results += [pscustomobject]@{
-        Check = "one T1197 alert for payload284.exe"
-        Pass = $t1197.Count -eq 1
-        Detail = if ($t1197.Count) { $t1197[0].message } else { "none" }
-    }
-    if ($MicrosoftJob) {
-        $msJobs = @($jobs | Where-Object { $_.job_title -eq "${JobName}ms" })
-        $results += [pscustomobject]@{
-            Check = "no bits_job for the Microsoft-host job ${JobName}ms"
-            Pass = $msJobs.Count -eq 0
-            Detail = "$($msJobs.Count) event(s)"
-        }
-    }
-    Write-Host ""
-    foreach ($r in $results) {
-        $verdict = if ($r.Pass) { "PASS" } else { "FAIL" }
-        Write-Host ("{0}  {1}: {2}" -f $verdict, $r.Check, $r.Detail) -ForegroundColor $(if ($r.Pass) { "Green" } else { "Red" })
-    }
-    @($results | Where-Object { -not $_.Pass }).Count -eq 0
+    Start-ScenarioAgent -AgentExe $AgentExe -Dir (Get-RunDirectory -OutDir $OutDir -Prefix "bits") -PipeName "synthaea-lab-bits"
 }
 
 # -- Scenario ------------------------------------------------------------------
 
-function Invoke-BitsScenario {
+function Start-PayloadListener([byte[]]$Bytes) {
     # The listener serves from its own runspace: bitsadmin /transfer blocks
     # until the job is done, and BITS makes several requests (HEAD, then
-    # ranged GETs). It is created here so the cleanup can stop it: stopping the
-    # runspace alone does not interrupt a blocked GetContext().
+    # ranged GETs). The listener object is kept so Stop-PayloadListener can
+    # stop it: stopping the runspace alone does not interrupt a blocked
+    # GetContext().
     $listener = New-Object System.Net.HttpListener
     $listener.Prefixes.Add("http://localhost:$Port/")
     $listener.Start()
@@ -139,65 +101,130 @@ function Invoke-BitsScenario {
             }
         }
         catch [System.Net.HttpListenerException] {
-            # Stop() from the cleanup: the blocked GetContext() returns here.
+            # Stop() from Stop-PayloadListener: the blocked GetContext() returns here.
         }
     }
-
     $server = [PowerShell]::Create()
-    [void]$server.AddScript($listenerScript).AddArgument($listener).AddArgument([IO.File]::ReadAllBytes($Source))
-    $handle = $server.BeginInvoke()
+    [void]$server.AddScript($listenerScript).AddArgument($listener).AddArgument($Bytes)
+    [pscustomobject]@{ Listener = $listener; Server = $server; Handle = $server.BeginInvoke() }
+}
+
+function Stop-PayloadListener($Payload) {
+    $Payload.Listener.Stop()
+    $Payload.Listener.Close()
+    [void]$Payload.Handle.AsyncWaitHandle.WaitOne(5000)
+    $Payload.Server.Dispose()
+}
+
+function Invoke-BitsDownloadExec {
+    Write-Host "bitsadmin /transfer $JobName $Url -> $Target"
+    Invoke-Native bitsadmin.exe @("/transfer", $JobName, "/download", "/priority", "foreground", $Url, $Target)
+    if (-not (Test-Path -LiteralPath $Target)) { throw "bitsadmin reported success but $Target is missing" }
+
+    Write-Host "running $Target"
+    & $Target | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "$Target failed with exit code $LASTEXITCODE" }
+}
+
+function Invoke-MicrosoftHostJob {
+    $msTarget = Join-Path $env:TEMP "connecttest284.txt"
+    Write-Host "bitsadmin /transfer ${JobName}ms (Microsoft host, must be filtered)"
+    Invoke-Native bitsadmin.exe @("/transfer", "${JobName}ms", "/download", "/priority", "foreground",
+        "http://www.msftconnecttest.com/connecttest.txt", $msTarget)
+    Remove-Item -LiteralPath $msTarget -Force -ErrorAction SilentlyContinue
+}
+
+function Invoke-BitsScenario {
+    $payload = Start-PayloadListener ([IO.File]::ReadAllBytes($Source))
     try {
         Start-Sleep -Seconds 1
-        if ($handle.IsCompleted) {
-            $server.EndInvoke($handle)
+        if ($payload.Handle.IsCompleted) {
+            $payload.Server.EndInvoke($payload.Handle)
             throw "the HTTP listener runspace exited at once"
         }
         Remove-Item -LiteralPath $Target -Force -ErrorAction SilentlyContinue
-
-        Write-Host "bitsadmin /transfer $JobName $Url -> $Target"
-        Invoke-Native bitsadmin.exe @("/transfer", $JobName, "/download", "/priority", "foreground", $Url, $Target)
-        if (-not (Test-Path -LiteralPath $Target)) { throw "bitsadmin reported success but $Target is missing" }
-
-        Write-Host "running $Target"
-        & $Target | Out-Null
-        if ($LASTEXITCODE -ne 0) { throw "$Target failed with exit code $LASTEXITCODE" }
-
-        if ($MicrosoftJob) {
-            $msTarget = Join-Path $env:TEMP "connecttest284.txt"
-            Write-Host "bitsadmin /transfer ${JobName}ms (Microsoft host, must be filtered)"
-            Invoke-Native bitsadmin.exe @("/transfer", "${JobName}ms", "/download", "/priority", "foreground",
-                "http://www.msftconnecttest.com/connecttest.txt", $msTarget)
-            Remove-Item -LiteralPath $msTarget -Force -ErrorAction SilentlyContinue
-        }
+        Invoke-BitsDownloadExec
+        if ($MicrosoftJob) { Invoke-MicrosoftHostJob }
     }
     finally {
-        $listener.Stop()
-        $listener.Close()
-        [void]$handle.AsyncWaitHandle.WaitOne(5000)
-        $server.Dispose()
+        Stop-PayloadListener $payload
         Remove-Item -LiteralPath $Target -Force -ErrorAction SilentlyContinue
     }
 }
 
-function Show-BitsLogRecords([datetime]$Since) {
-    # What the Bits-Client log recorded for our jobs: the same records the
-    # sensor reads over ETW.
+# -- Bits-Client log self-check (no -AgentExe) -----------------------------------
+
+function Get-BitsLogRecords([datetime]$Since) {
+    # What the Bits-Client log recorded for our jobs, oldest first: the same
+    # records the sensor reads over ETW.
     Start-Sleep -Seconds 1
     $records = @(Get-WinEvent -LogName "Microsoft-Windows-Bits-Client/Operational" -ErrorAction SilentlyContinue |
         Where-Object { $_.TimeCreated -ge $Since -and $_.Id -in 4, 5, 16403, 61 } |
         Where-Object { ([xml]$_.ToXml()).Event.EventData.Data | Where-Object { $_.InnerText -like "$JobName*" } })
-    Write-Host ""
-    Write-Host "Bits-Client records for ${JobName}*: $($records.Count)"
     foreach ($record in ($records | Sort-Object TimeCreated)) {
         $data = @{}
         # InnerText, not '#text': an empty <Data/> has no '#text' and strict mode throws.
         ([xml]$record.ToXml()).Event.EventData.Data | ForEach-Object { $data[$_.Name] = $_.InnerText }
-        Write-Host ("  EID {0,-5} {1,-14} processId={2} {3} {4}" -f $record.Id, $data["jobTitle"], $data["processId"], $data["RemoteName"], $data["LocalName"])
+        [pscustomobject]@{
+            Id = $record.Id
+            JobTitle = $data["jobTitle"]
+            ProcessId = $data["processId"]
+            RemoteName = $data["RemoteName"]
+            LocalName = $data["LocalName"]
+        }
     }
-    if (@($records | Where-Object { $_.Id -eq 16403 }).Count -eq 0) {
+}
+
+function Write-BitsLogRecords([object[]]$Records = @()) {
+    Write-Host ""
+    Write-Host "Bits-Client records for ${JobName}*: $($Records.Count)"
+    foreach ($record in $Records) {
+        Write-Host ("  EID {0,-5} {1,-14} processId={2} {3} {4}" -f $record.Id, $record.JobTitle, $record.ProcessId, $record.RemoteName, $record.LocalName)
+    }
+    if (@($Records | Where-Object { $_.Id -eq 16403 }).Count -eq 0) {
         Write-Warning "no 16403 (file added) record: the sensor has nothing to report either"
     }
 }
+
+# -- Verdict (-AgentExe) ---------------------------------------------------------
+
+function Get-ScenarioVerdict {
+    # The checks of an -AgentExe run, from the agent's events and alerts, as
+    # { Check, Pass, Detail } objects for Write-Verdict (common.ps1). Prints nothing.
+    param(
+        [Parameter(Mandatory)]$Agent,
+        [Parameter(Mandatory)][string]$JobName,
+        [switch]$MicrosoftJob
+    )
+    $jobs = @(Read-AgentEvents -Path $Agent.Events -Type "bits_job")
+    $ours = @($jobs | Where-Object { $_.job_title -eq $JobName })
+    $states = ($ours | ForEach-Object { $_.state }) -join ","
+    [pscustomobject]@{
+        Check = "bits_job file_added + completed for $JobName"
+        Pass = ($states -eq "file_added,completed") -and (@($ours | Where-Object { $_.meta.comm -ne "bitsadmin.exe" }).Count -eq 0)
+        Detail = "states=[$states] comm=[$(($ours | ForEach-Object { $_.meta.comm } | Select-Object -Unique) -join ',')] ($($jobs.Count) bits_job events in all)"
+    }
+    $t1197 = @()
+    if (Test-Path $Agent.Alerts) {
+        $t1197 = @(Get-Content -LiteralPath $Agent.Alerts | Where-Object { $_ } | ForEach-Object { $_ | ConvertFrom-Json } |
+            Where-Object { $_.technique -eq "T1197" -and $_.message -match "payload284\.exe" })
+    }
+    [pscustomobject]@{
+        Check = "one T1197 alert for payload284.exe"
+        Pass = $t1197.Count -eq 1
+        Detail = if ($t1197.Count) { $t1197[0].message } else { "none" }
+    }
+    if ($MicrosoftJob) {
+        $msJobs = @($jobs | Where-Object { $_.job_title -eq "${JobName}ms" })
+        [pscustomobject]@{
+            Check = "no bits_job for the Microsoft-host job ${JobName}ms"
+            Pass = $msJobs.Count -eq 0
+            Detail = "$($msJobs.Count) event(s)"
+        }
+    }
+}
+
+# -- Main ------------------------------------------------------------------------
 
 $agent = $null
 $started = Get-Date
@@ -209,10 +236,13 @@ try {
 finally {
     Stop-ScenarioAgent $agent
 }
-Show-BitsLogRecords $started
+Write-BitsLogRecords @(Get-BitsLogRecords $started)
 
 if ($agent) {
-    if (-not (Test-ScenarioAgent $agent)) {
+    $verdict = @(Get-ScenarioVerdict -Agent $agent -JobName $JobName -MicrosoftJob:$MicrosoftJob)
+    Write-Host ""
+    Write-Verdict $verdict
+    if (-not (Test-VerdictPassed $verdict)) {
         Write-Host "see $($agent.Dir) (events.jsonl, alerts.ndjson, stderr.log)"
         exit 1
     }

@@ -81,6 +81,41 @@ try {
     $threw = $false
     try { Stop-ScenarioAgent $null } catch { $threw = $true }
     Assert-That "Stop-ScenarioAgent without an agent is a no-op" (-not $threw)
+
+    Assert-That "Get-RunDirectory keeps an explicit -OutDir" ((Get-RunDirectory -OutDir $runDir -Prefix "bits") -eq $runDir)
+    $savedTemp = $env:TEMP
+    try {
+        $env:TEMP = $work
+        $default = Get-RunDirectory -Prefix "bits"
+    }
+    finally { $env:TEMP = $savedTemp }
+    # Join-Path turns the backslash into / on Linux.
+    $defaultShape = ($default -replace '\\', '/') -like (($work -replace '\\', '/') + "/synthaea-lab-validation/bits-*")
+    Assert-That "Get-RunDirectory defaults under %TEMP%\synthaea-lab-validation" $defaultShape "got '$default'"
+    Assert-That "Get-RunDirectory creates nothing" (-not (Test-Path (Join-Path $work "synthaea-lab-validation*")))
+
+    $eventsFile = Join-Path $work "events.jsonl"
+    @(
+        '{"type":"exec","meta":{"pid":1}}'
+        '{"type":"exec_args","meta":{"pid":2}}'
+        '{"type":"bits_job","job_title":"j"}'
+        '{"type":"exec","meta":{"pid":3}}'
+    ) | Set-Content -LiteralPath $eventsFile
+    $read = @(Read-AgentEvents -Path $eventsFile -Type "exec")
+    Assert-That "Read-AgentEvents keeps only events of the exact type" (($read | ForEach-Object { $_.meta.pid }) -join "," -eq "1,3") "got $($read.Count) event(s)"
+
+    $results = @(
+        [pscustomobject]@{ Check = "first"; Pass = $true; Detail = "fine" }
+        [pscustomobject]@{ Check = "second"; Pass = $false; Detail = "0 event(s)" }
+    )
+    $printed = @(& { Write-Verdict $results } 6>&1 | ForEach-Object { "$_" })
+    Assert-That "Write-Verdict prints one PASS/FAIL line per result" (($printed -join "|") -eq "PASS  first: fine|FAIL  second: 0 event(s)") "got '$($printed -join '|')'"
+    $returned = @(& { Write-Verdict $results } 6>$null)
+    Assert-That "Write-Verdict returns nothing" ($returned.Count -eq 0)
+    $quiet = @(& { Test-VerdictPassed $results } 6>&1)
+    Assert-That "Test-VerdictPassed prints nothing and fails on one FAIL" (($quiet.Count -eq 1) -and ($quiet[0] -eq $false))
+    Assert-That "Test-VerdictPassed passes when every result passes" (Test-VerdictPassed @($results[0]))
+    Assert-That "Test-VerdictPassed passes on no results" (Test-VerdictPassed @())
 }
 finally {
     Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue

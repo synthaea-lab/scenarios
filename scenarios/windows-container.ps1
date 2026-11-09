@@ -109,43 +109,57 @@ function Invoke-ContainerScenario($Agent) {
     [pscustomobject]@{ Id = $id; HostPid = $hostProc.Id }
 }
 
-function Show-SiloDiagnostics([string]$Dir) {
-    Write-Host ""
-    Write-Host "docker top $Name, with each process's ServerSiloId:"
-    $siloIds = @()
+function Get-ContainerProcessSilos {
+    # Each process `docker top` lists, with the ServerSiloId the sensor reads for it.
     foreach ($line in (docker top $Name 2>$null | Select-Object -Skip 1)) {
         $fields = $line -split '\s+' | Where-Object { $_ }
         $hostPid = $fields | Where-Object { $_ -match '^\d+$' } | Select-Object -First 1
         if (-not $hostPid) { continue }
-        $silo = [SynthaeaSilo]::ServerSiloId([int]$hostPid)
-        if ($silo -match '^\d+$' -and $silo -ne "0") { $siloIds += $silo }
-        Write-Host ("  {0,-24} pid {1,-7} silo {2}" -f $fields[0], $hostPid, $silo)
+        [pscustomobject]@{ Name = $fields[0]; Pid = $hostPid; Silo = [SynthaeaSilo]::ServerSiloId([int]$hostPid) }
     }
+}
+
+# The distinct real ServerSiloIds of $Processes: not 0 (the host) nor a failed query.
+function Get-ServerSiloIds([object[]]$Processes = @()) {
+    @($Processes | ForEach-Object { $_.Silo } | Where-Object { $_ -match '^\d+$' -and $_ -ne "0" } | Select-Object -Unique)
+}
+
+function Write-ContainerProcessSilos([object[]]$Processes = @()) {
+    Write-Host ""
+    Write-Host "docker top $Name, with each process's ServerSiloId:"
+    foreach ($process in $Processes) {
+        Write-Host ("  {0,-24} pid {1,-7} silo {2}" -f $process.Name, $process.Pid, $process.Silo)
+    }
+}
+
+function Write-HcsDiagList {
     if (Get-Command hcsdiag -ErrorAction SilentlyContinue) {
         Write-Host ""
         Write-Host "hcsdiag list:"
         hcsdiag list | ForEach-Object { Write-Host "  $_" }
     }
-    @($siloIds | Select-Object -Unique)
 }
 
 function Get-SiloTraceRecords([string]$Dir) {
     $xml = Join-Path $Dir "silo.xml"
     Invoke-Native tracerpt @("$Dir\silo.etl", "-o", $xml, "-of", "XML", "-y")
-    $records = @()
     foreach ($e in ([xml](Get-Content -LiteralPath $xml -Raw)).Events.Event) {
         $eid = [int]$e.System.EventID
         if ($eid -lt 22 -or $eid -gt 26) { continue }
         $data = @{}
         # InnerText, not '#text': an empty <Data/> has no '#text' and strict mode throws.
         foreach ($d in $e.EventData.Data) { $data[$d.Name] = $d.InnerText.Trim() }
-        $records += [pscustomobject]@{ Eid = $eid; JobId = $data["Job ID"]; ContainerId = $data["Container ID"] }
+        [pscustomobject]@{ Eid = $eid; JobId = $data["Job ID"]; ContainerId = $data["Container ID"] }
     }
-    Write-Host ""
-    Write-Host "Kernel-Process server-silo records (EIDs 22-26): $($records.Count)"
-    $records | ForEach-Object { Write-Host ("  EID {0} Job ID {1} Container ID {2}" -f $_.Eid, $_.JobId, $_.ContainerId) }
-    $records
 }
+
+function Write-SiloTraceRecords([object[]]$Records = @()) {
+    Write-Host ""
+    Write-Host "Kernel-Process server-silo records (EIDs 22-26): $($Records.Count)"
+    $Records | ForEach-Object { Write-Host ("  EID {0} Job ID {1} Container ID {2}" -f $_.Eid, $_.JobId, $_.ContainerId) }
+}
+
+# -- Verdict (-AgentExe) ---------------------------------------------------------
 
 # The container id of an exec event, or $null for a host process (the agent
 # omits meta.container there).
@@ -153,48 +167,52 @@ function Get-ExecContainerId($Exec) {
     Get-OptionalProperty (Get-OptionalProperty $Exec.meta "container") "id"
 }
 
-function Test-Scenario($Agent, $Run, $SiloIds, $SiloRecords) {
-    $execs = @(Get-Content -LiteralPath $Agent.Events | Where-Object { $_.StartsWith('{"type":"exec"') } |
-        ForEach-Object { $_ | ConvertFrom-Json })
-    $inContainer = @($execs | Where-Object { (Get-ExecContainerId $_) -eq $Run.Id })
-    $provisional = @($execs | Where-Object { "$(Get-ExecContainerId $_)".StartsWith("silo:") })
-    $results = @()
-    $results += [pscustomobject]@{
+function Write-ProvisionalSiloIds([object[]]$Execs = @()) {
+    $provisional = @($Execs | Where-Object { "$(Get-ExecContainerId $_)".StartsWith("silo:") })
+    Write-Host ("info: {0} exec event(s) carried a provisional silo:<n> id: {1}" -f $provisional.Count,
+        (($provisional | ForEach-Object { "$($_.meta.comm)=$(Get-ExecContainerId $_)" } | Select-Object -Unique) -join ', '))
+}
+
+function Get-ScenarioVerdict {
+    # The checks of an -AgentExe run, from the agent's exec events, the run
+    # ($Run: Id, HostPid) and the silo diagnostics, as { Check, Pass, Detail }
+    # objects for Write-Verdict (common.ps1). Prints nothing.
+    param(
+        [AllowEmptyCollection()][object[]]$Execs = @(),
+        [Parameter(Mandatory)]$Run,
+        [AllowEmptyCollection()][object[]]$SiloIds = @(),
+        [AllowEmptyCollection()][object[]]$SiloRecords = @()
+    )
+    $inContainer = @($Execs | Where-Object { (Get-ExecContainerId $_) -eq $Run.Id })
+    [pscustomobject]@{
         Check = "exec events from the container carry its id"
         Pass = $inContainer.Count -gt 0
         Detail = "$($inContainer.Count) event(s): $(($inContainer | ForEach-Object { $_.meta.comm } | Select-Object -Unique) -join ', ')"
     }
     $execd = @($inContainer | Where-Object { $_.meta.comm -ieq "hostname.exe" })
-    $results += [pscustomobject]@{
+    [pscustomobject]@{
         Check = "docker exec'd hostname.exe carries the container id"
         Pass = $execd.Count -ge 1
         Detail = "$($execd.Count) event(s)"
     }
-    $hostExec = @($execs | Where-Object { $_.meta.pid -eq $Run.HostPid })
-    $results += [pscustomobject]@{
+    $hostExec = @($Execs | Where-Object { $_.meta.pid -eq $Run.HostPid })
+    [pscustomobject]@{
         Check = "the host's hostname.exe has no container"
         Pass = ($hostExec.Count -ge 1) -and (@($hostExec | Where-Object { Get-ExecContainerId $_ }).Count -eq 0)
         Detail = "$($hostExec.Count) event(s) for pid $($Run.HostPid)"
     }
     $jobIds = @($SiloRecords | ForEach-Object { $_.JobId } | Select-Object -Unique)
-    $results += [pscustomobject]@{
+    [pscustomobject]@{
         Check = "the silo records' Job ID is the ServerSiloId the processes run in"
         Pass = ($SiloIds.Count -eq 1) -and ($jobIds -contains $SiloIds[0])
         Detail = "ServerSiloId [$($SiloIds -join ',')], Job IDs [$($jobIds -join ',')]"
     }
-    Write-Host ""
-    Write-Host ("info: {0} exec event(s) carried a provisional silo:<n> id: {1}" -f $provisional.Count,
-        (($provisional | ForEach-Object { "$($_.meta.comm)=$(Get-ExecContainerId $_)" } | Select-Object -Unique) -join ', '))
-    foreach ($r in $results) {
-        $verdict = if ($r.Pass) { "PASS" } else { "FAIL" }
-        Write-Host ("{0}  {1}: {2}" -f $verdict, $r.Check, $r.Detail) -ForegroundColor $(if ($r.Pass) { "Green" } else { "Red" })
-    }
-    @($results | Where-Object { -not $_.Pass }).Count -eq 0
 }
 
+# -- Main ------------------------------------------------------------------------
+
 Assert-Prerequisites
-$dir = $OutDir
-if (-not $dir) { $dir = Join-Path $env:TEMP ("synthaea-lab-validation\container-" + (Get-Date -Format "yyyyMMdd-HHmmss")) }
+$dir = Get-RunDirectory -OutDir $OutDir -Prefix "container"
 New-Item -ItemType Directory -Force -Path $dir | Out-Null
 $dir = (Resolve-Path $dir).Path
 
@@ -206,9 +224,13 @@ Invoke-Native logman @("start", $TraceName, "-p", "Microsoft-Windows-Kernel-Proc
 try {
     if ($AgentExe) { $agent = Start-ScenarioAgent -AgentExe $AgentExe -Dir $dir -PipeName "synthaea-lab-container" }
     $run = Invoke-ContainerScenario $agent
+    # Queried while the container still runs (the finally block removes it).
+    $processes = @(Get-ContainerProcessSilos)
+    Write-ContainerProcessSilos $processes
+    Write-HcsDiagList
     # @(): a function's one-element array comes back unrolled to a bare string, and
-    # Test-Scenario's $SiloIds[0] then reads its first character ("2" of "220").
-    $siloIds = @(Show-SiloDiagnostics $dir)
+    # Get-ScenarioVerdict's $SiloIds[0] then reads its first character ("2" of "220").
+    $siloIds = @(Get-ServerSiloIds $processes)
     if ($agent) { Start-Sleep -Seconds 8 }
 }
 finally {
@@ -216,10 +238,16 @@ finally {
     Invoke-NativeCleanup "container $Name" docker @("rm", "-f", $Name)
     Invoke-NativeCleanup "trace session $TraceName" logman @("stop", $TraceName, "-ets")
 }
-$siloRecords = Get-SiloTraceRecords $dir
+$siloRecords = @(Get-SiloTraceRecords $dir)
+Write-SiloTraceRecords $siloRecords
 
 if ($agent) {
-    if (-not (Test-Scenario $agent $run $siloIds $siloRecords)) {
+    $execs = @(Read-AgentEvents -Path $agent.Events -Type "exec")
+    $verdict = @(Get-ScenarioVerdict -Execs $execs -Run $run -SiloIds $siloIds -SiloRecords $siloRecords)
+    Write-Host ""
+    Write-ProvisionalSiloIds $execs
+    Write-Verdict $verdict
+    if (-not (Test-VerdictPassed $verdict)) {
         Write-Host "see $dir (events.jsonl, stderr.log, silo.xml)"
         exit 1
     }

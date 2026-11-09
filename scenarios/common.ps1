@@ -199,3 +199,57 @@ function Stop-ScenarioAgent {
         $Agent.Process.WaitForExit(10000) | Out-Null
     }
 }
+
+function Get-RunDirectory {
+    <#
+    .SYNOPSIS
+        Where a self-checking run keeps its files: $OutDir when given, else a
+        fresh %TEMP%\synthaea-lab-validation\<Prefix>-<timestamp>. Creates nothing.
+    #>
+    param(
+        [string]$OutDir = "",
+        [Parameter(Mandatory)][string]$Prefix
+    )
+    if ($OutDir) { return $OutDir }
+    Join-Path $env:TEMP ("synthaea-lab-validation\$Prefix-" + (Get-Date -Format "yyyyMMdd-HHmmss"))
+}
+
+function Read-AgentEvents {
+    <#
+    .SYNOPSIS
+        The events of one $Type (e.g. "exec", "bits_job") in the agent's
+        events.jsonl at $Path, as objects.
+    #>
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][string]$Type
+    )
+    $prefix = '{"type":"' + $Type + '"'
+    Get-Content -LiteralPath $Path | Where-Object { $_.StartsWith($prefix) } | ForEach-Object { $_ | ConvertFrom-Json }
+}
+
+# -- Self-check verdict -----------------------------------------------------------
+# A scenario's Get-ScenarioVerdict returns its checks as { Check, Pass, Detail }
+# objects and prints nothing; these two print them and reduce them to the exit code.
+
+function Write-Verdict {
+    <#
+    .SYNOPSIS
+        Prints one "PASS  <check>: <detail>" or "FAIL  ..." line per result.
+    #>
+    param([AllowEmptyCollection()][object[]]$Results = @())
+    foreach ($result in $Results) {
+        $verdict = if ($result.Pass) { "PASS" } else { "FAIL" }
+        $color = if ($result.Pass) { "Green" } else { "Red" }
+        Write-Host ("{0}  {1}: {2}" -f $verdict, $result.Check, $result.Detail) -ForegroundColor $color
+    }
+}
+
+function Test-VerdictPassed {
+    <#
+    .SYNOPSIS
+        True when no result failed. Prints nothing.
+    #>
+    param([AllowEmptyCollection()][object[]]$Results = @())
+    @($Results | Where-Object { -not $_.Pass }).Count -eq 0
+}
