@@ -1,4 +1,4 @@
-# Split from the original monorepo's root .gitattributes; see its history for the incidents.
+# Line endings each file type needs on the machine that runs it.
 # Shell scripts are rsynced verbatim into Linux guests: a lone \r breaks every command.
 *.sh   text eol=lf
 *.bash text eol=lf

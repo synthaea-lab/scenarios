@@ -40,6 +40,11 @@ New scenarios follow the same shape: one script, one documented expectation list
 runnable against any platform's agent from the VM matrix
 ([synthaea-lab/rig](https://github.com/synthaea-lab/rig)).
 
+Source paths in the script comments (`crates/rules/src/state.rs`, `apps/agent/src/...`) are
+relative to the agent repository, [synthaea-lab/agent](https://github.com/synthaea-lab/agent),
+not to this one. Usage lines that start the agent (`target/release/agent run`) run in an agent
+checkout; the scenario itself runs from the root of this repository.
+
 ## Raw syscall-exit stale-entry regression (#694)
 
 `pending-syscall-exit-exec.c` is a negative check for a thread-group leader blocked in
@@ -78,6 +83,8 @@ stale-entry bug. The host-side syscall-number tests cover the mismatch decision.
 This is a live lab check. It complements the deterministic host-side test
 of the syscall-number match logic; it does not rely on timing sleeps to validate
 the core dispatch decision.
+
+## Windows scenarios
 
 Windows scenarios must run on a stock Windows PowerShell 5.1 under any locale
 (#433). They dot-source `common.ps1` and keep to its three rules: ASCII-only source

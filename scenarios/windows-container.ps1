@@ -24,8 +24,8 @@
 
 .NOTES
     Self-checking run (elevated, no other agent running):
-        cargo build --release -p agent
-        powershell -ExecutionPolicy Bypass -File lab\scenarios\windows-container.ps1 -AgentExe target\release\agent.exe
+        cargo build --release -p agent      (in the agent checkout)
+        powershell -ExecutionPolicy Bypass -File scenarios\windows-container.ps1 -AgentExe <agent checkout>\target\release\agent.exe
 
     Expected:
         - exec events from inside the container carry container.id = the
@@ -194,7 +194,7 @@ function Test-Scenario($Agent, $Run, $SiloIds, $SiloRecords) {
 
 Assert-Prerequisites
 $dir = $OutDir
-if (-not $dir) { $dir = Join-Path $PSScriptRoot ("..\..\target\lab-validation\container-" + (Get-Date -Format "yyyyMMdd-HHmmss")) }
+if (-not $dir) { $dir = Join-Path $env:TEMP ("synthaea-lab-validation\container-" + (Get-Date -Format "yyyyMMdd-HHmmss")) }
 New-Item -ItemType Directory -Force -Path $dir | Out-Null
 $dir = (Resolve-Path $dir).Path
 

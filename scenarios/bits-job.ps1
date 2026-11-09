@@ -22,8 +22,8 @@
     Self-checking run (elevated, no other agent running): the script writes a
     lab agent.toml, starts the agent, runs the scenario, stops the agent and
     prints PASS/FAIL per expectation (exit code 1 on any FAIL):
-        cargo build --release -p agent
-        powershell -ExecutionPolicy Bypass -File lab\scenarios\bits-job.ps1 -AgentExe target\release\agent.exe -MicrosoftJob
+        cargo build --release -p agent      (in the agent checkout)
+        powershell -ExecutionPolicy Bypass -File scenarios\bits-job.ps1 -AgentExe <agent checkout>\target\release\agent.exe -MicrosoftJob
 
     Expected:
         - two "bits_job" events for job "synthaea284", file_added then
@@ -62,7 +62,7 @@ $Url = "http://localhost:$Port/payload284.exe"
 function Start-BitsAgent {
     Assert-Administrator "-AgentExe needs an elevated PowerShell: the agent's ETW session needs Administrator."
     $dir = $OutDir
-    if (-not $dir) { $dir = Join-Path $PSScriptRoot ("..\..\target\lab-validation\bits-" + (Get-Date -Format "yyyyMMdd-HHmmss")) }
+    if (-not $dir) { $dir = Join-Path $env:TEMP ("synthaea-lab-validation\bits-" + (Get-Date -Format "yyyyMMdd-HHmmss")) }
     Start-ScenarioAgent -AgentExe $AgentExe -Dir $dir -PipeName "synthaea-lab-bits"
 }
 
