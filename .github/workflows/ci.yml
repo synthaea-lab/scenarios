@@ -39,6 +39,10 @@ jobs:
           persist-credentials: false
       - name: PowerShell scripts are ASCII-only
         run: python3 tools/check-ps1-ascii.py
+      # pwsh ships on the ubuntu runner: every script must parse, and the shared
+      # agent harness must keep writing the lab agent.toml byte for byte.
+      - name: PowerShell scripts parse; common.ps1 harness helpers
+        run: pwsh -NoProfile -File tools/test-common-ps1.ps1
 
   sidecar-bytes:
     runs-on: ubuntu-latest

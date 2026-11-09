@@ -85,6 +85,12 @@ Windows scenarios must run on a stock Windows PowerShell 5.1 under any locale
 current culture (`Get-FarFutureDate`), and every native call checked
 (`Invoke-Native`), so a failed step throws instead of reporting success.
 
+The self-checking scenarios (`bits-job.ps1`, `windows-container.ps1`, with `-AgentExe`) share
+the agent harness in `common.ps1` too: `Assert-Administrator`, `New-LabAgentConfig` (the
+offline lab `agent.toml`), `Start-ScenarioAgent` and `Stop-ScenarioAgent`. Every script must
+parse and the harness must keep writing the same `agent.toml`: `tools/test-common-ps1.ps1`,
+run by CI.
+
 ## Machine-readable expectations
 
 Each `.sh` scenario above has a YAML sidecar (`<name>.yaml`, decided in issue #44:

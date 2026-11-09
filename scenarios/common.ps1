@@ -68,3 +68,117 @@ function Get-FarFutureDate {
     #>
     (Get-Date).AddYears(70).ToString((Get-Culture).DateTimeFormat.ShortDatePattern)
 }
+
+# -- Agent harness: the -AgentExe self-checking runs -----------------------------
+
+function Assert-Administrator {
+    <#
+    .SYNOPSIS
+        Throws $Message unless this PowerShell runs elevated.
+    #>
+    param([Parameter(Mandatory)][string]$Message)
+    $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        throw $Message
+    }
+}
+
+function New-LabAgentConfig {
+    <#
+    .SYNOPSIS
+        Writes an offline lab agent.toml into $Dir, keeping certs, logs and state
+        under it, with its IPC endpoint at \\.\pipe\$PipeName. Returns its path.
+    #>
+    param(
+        [Parameter(Mandatory)][string]$Dir,
+        [Parameter(Mandatory)][string]$PipeName
+    )
+    $config = Join-Path $Dir "agent.toml"
+    # Same template as rig\runner\windows\validate-admin.ps1: offline, nothing
+    # outside the run directory.
+    @"
+schema_version = 1
+
+[server]
+control_plane_url = "https://cp.lab.invalid"
+mtls_cert = '$Dir\certs\client.crt'
+mtls_key = '$Dir\certs\client.key'
+mtls_passphrase = "envvar:SYNTHAEA_MTLS_PASSPHRASE"
+offline_fallback = true
+
+[log]
+dir = '$Dir\logs'
+level = "info"
+max_mb = 64
+
+[storage]
+state_dir = '$Dir\state'
+spool_max_mb = 64
+
+[ipc]
+endpoint = '\\.\pipe\$PipeName'
+
+[resources]
+worker_threads = 0
+max_reconnect_backoff_ms = 60000
+"@ | Set-Content -LiteralPath $config -Encoding Ascii
+    $config
+}
+
+function Start-ScenarioAgent {
+    <#
+    .SYNOPSIS
+        Starts $AgentExe on a fresh lab config in $Dir (created if missing) and
+        waits until its ETW trace runs. Returns { Process, Dir, Events, Alerts }
+        for Stop-ScenarioAgent and the scenario's checks. The caller asserts
+        elevation first (Assert-Administrator).
+    #>
+    param(
+        [Parameter(Mandatory)][string]$AgentExe,
+        [Parameter(Mandatory)][string]$Dir,
+        [Parameter(Mandatory)][string]$PipeName
+    )
+    if (-not (Test-Path $AgentExe)) { throw "agent.exe not found at $AgentExe (cargo build --release -p agent)" }
+    if (Get-Process -Name "agent" -ErrorAction SilentlyContinue) {
+        throw "An agent.exe is already running; stop it first (this run starts its own)."
+    }
+    $exe = (Resolve-Path $AgentExe).Path
+    New-Item -ItemType Directory -Force -Path $Dir | Out-Null
+    $Dir = (Resolve-Path $Dir).Path
+    $config = New-LabAgentConfig -Dir $Dir -PipeName $PipeName
+    $events = Join-Path $Dir "events.jsonl"
+    $alerts = Join-Path $Dir "alerts.ndjson"
+    $agentArgs = @("--config", "`"$config`"", "run", "--alerts", "`"$alerts`"", "--events", "`"$events`"")
+    $proc = Start-Process -FilePath $exe -ArgumentList $agentArgs -WorkingDirectory $Dir `
+        -RedirectStandardOutput "$Dir\stdout.log" -RedirectStandardError "$Dir\stderr.log" `
+        -WindowStyle Hidden -PassThru
+    Write-Host "agent started (pid $($proc.Id)), output in $Dir"
+    # Ready once the first event lands: the pid store is seeded and the trace runs.
+    $deadline = (Get-Date).AddSeconds(30)
+    while (-not ((Test-Path $events) -and (Get-Item $events).Length -gt 0)) {
+        if ($proc.HasExited) { throw "the agent exited at startup; see $Dir\stderr.log" }
+        if ((Get-Date) -gt $deadline) { throw "the agent produced no events in 30s; see $Dir\stderr.log" }
+        Start-Sleep -Milliseconds 500
+    }
+    # The Event Log sensor keeps writing events when ETW is down, so the first
+    # event alone does not prove the trace is up.
+    Start-Sleep -Seconds 2
+    if ((Get-Content -LiteralPath "$Dir\stderr.log" -Raw -ErrorAction SilentlyContinue) -match "ETW sensor failed") {
+        Stop-Process -Id $proc.Id -Force
+        throw "the agent's ETW sensor failed to start; see $Dir\stderr.log"
+    }
+    [pscustomobject]@{ Process = $proc; Dir = $Dir; Events = $events; Alerts = $alerts }
+}
+
+function Stop-ScenarioAgent {
+    <#
+    .SYNOPSIS
+        Kills an agent Start-ScenarioAgent started and waits up to 10 s for it to
+        exit. A $null $Agent (no -AgentExe run) is a no-op.
+    #>
+    param($Agent)
+    if ($Agent -and -not $Agent.Process.HasExited) {
+        Stop-Process -Id $Agent.Process.Id -Force
+        $Agent.Process.WaitForExit(10000) | Out-Null
+    }
+}
