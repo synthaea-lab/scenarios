@@ -27,22 +27,19 @@
 
 set -euo pipefail
 
+. "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
+
 MODE="${1:-single}"
 
 # $HOME, not /tmp: keeps this scenario independent of the /tmp write-intent carve-out
 # (issue #325/#426) — renames aren't filtered there either way (mutation events are
 # never dropped, only reads), but $HOME is also the more representative target: real
 # ransomware goes after documents, not scratch space.
-DIR="$(mktemp -d "$HOME/synthaea-scenario-ransomware-XXXXXX")"
+make_workdir DIR "$HOME" synthaea-scenario-ransomware-
 COUNT=22 # a couple past RANSOMWARE_RENAME_THRESHOLD (20) for timing margin
 
-cleanup() { rm -rf "$DIR"; }
-trap cleanup EXIT
-
 echo "Creating $COUNT throwaway files in $DIR..."
-for i in $(seq 0 $((COUNT - 1))); do
-    : > "$DIR/file${i}.docx"
-done
+create_throwaway_files "$DIR" "$COUNT" 'file%d.docx'
 
 case "$MODE" in
 single)

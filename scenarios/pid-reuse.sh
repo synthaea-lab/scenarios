@@ -33,16 +33,11 @@ MODE="${1:-recycled}"
 
 require_root "it writes /proc/sys/kernel/ns_last_pid"
 
-DIR="$(mktemp -d "$HOME/synthaea-scenario-pid-reuse-XXXXXX")"
+make_workdir DIR "$HOME" synthaea-scenario-pid-reuse-
 COUNT=22 # a couple past RANSOMWARE_RENAME_THRESHOLD (20) for timing margin
 
-cleanup() { rm -rf "$DIR"; }
-add_cleanup cleanup
-
 echo "Creating $COUNT throwaway files in $DIR..."
-for i in $(seq 0 $((COUNT - 1))); do
-    : > "$DIR/s${i}.conf"
-done
+create_throwaway_files "$DIR" "$COUNT" 's%d.conf'
 
 case "$MODE" in
 real)

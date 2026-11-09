@@ -97,6 +97,7 @@ git ls-files -z '*.sh' | xargs -0 -n 1 bash -n
 git ls-files -z '*.sh' | xargs -0 shellcheck --severity=warning
 bash tools/test-preconditions.sh
 bash tools/test-fake-webserver.sh
+bash tools/test-workdir.sh
 python3 tools/check-ps1-ascii.py
 pwsh -NoProfile -File tools/test-common-ps1.ps1
 python3 tools/check-sidecar-bytes.py
@@ -107,6 +108,7 @@ python3 tools/check-sidecar-bytes.py
 | `bash -n`, ShellCheck | Every shell script parses and has no warning-level findings |
 | `test-preconditions.sh` | The precondition helpers, and that scenarios which cannot run on this host exit with code 2 |
 | `test-fake-webserver.sh` | `make_fake_webserver` copies the right shell and the copy runs the spawn command |
+| `test-workdir.sh` | `make_workdir` and `create_throwaway_files`, and that the unprivileged scenarios using them leave nothing behind |
 | `check-ps1-ascii.py` | Every PowerShell script is ASCII-only |
 | `test-common-ps1.ps1` | Every PowerShell script parses, and the agent harness writes the expected lab configuration |
 | `check-sidecar-bytes.py` | Every sidecar matches `scenarios/sidecars.sha256` |
