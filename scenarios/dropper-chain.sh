@@ -22,7 +22,10 @@ set -euo pipefail
 . "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
 
 PORT=8080
-OUT_FILE="/tmp/edr-test-dropper-payload"
+# A fresh, unpredictable name (mktemp creates it with O_EXCL), so the write cannot
+# follow a file or symlink planted at a fixed path. The rule keys on curl's pid, not
+# on the path; /tmp is kept as the directory the payload lands in.
+OUT_FILE=$(mktemp /tmp/edr-test-dropper-payload.XXXXXX)
 
 add_cleanup rm -f "$OUT_FILE"
 start_loopback_listener '

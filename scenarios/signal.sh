@@ -26,12 +26,17 @@
 #
 # Environment: EVENTS (default events.jsonl), ALERTS (default alerts.ndjson),
 # AGENT_PID (default: oldest process named "agent" or "synthaea-agent").
+#
+# `kill` records the sender pid in a state file that `verify-kill` reads back. It
+# lives in a directory only this user can write (see state_file), never in /tmp:
+# the script runs as root, and a fixed name in a world-writable directory could be
+# a planted symlink that the write would follow.
 
 set -euo pipefail
 
 EVENTS=${EVENTS:-events.jsonl}
 ALERTS=${ALERTS:-alerts.ndjson}
-STATE=/tmp/synthaea-signal-scenario.sender
+STATE_NAME=synthaea-signal-scenario.sender
 # Long enough for the enrich queue to append the event to events.jsonl.
 FLUSH_WAIT=3
 MODE=${1:-live}
@@ -43,6 +48,26 @@ agent_pid() {
     else
         pgrep -xo agent || pgrep -xo synthaea-agent || true
     fi
+}
+
+# state_file — print the path of the sender state file: in $XDG_RUNTIME_DIR, else
+# /run/user/<uid>, else (root only) /run. The same lookup in `kill` and
+# `verify-kill` finds the same file. Exits 2 if none of them is a writable directory.
+state_file() {
+    local uid dir candidates
+    uid=$(id -u)
+    candidates=("${XDG_RUNTIME_DIR:-}" "/run/user/$uid")
+    if [[ "$uid" -eq 0 ]]; then
+        candidates+=(/run)
+    fi
+    for dir in "${candidates[@]}"; do
+        if [[ -n "$dir" && -d "$dir" && -w "$dir" ]]; then
+            echo "$dir/$STATE_NAME"
+            return
+        fi
+    done
+    echo "No private runtime directory for the state file (set XDG_RUNTIME_DIR)." >&2
+    exit 2
 }
 
 count_signal_events() { grep -c '"type":"signal"' "$EVENTS" || true; }
@@ -126,19 +151,23 @@ run_live() {
 
 run_kill() {
     require_agent
+    local state
+    state=$(state_file)   # before the kill: no state directory, no kill
     # Wait out the sweep of any SIGKILL attempt from a previous live run, so the
     # slot can only hold the kill below.
     sleep 12
-    echo "$$" >"$STATE"
+    echo "$$" >"$state"
+    echo "Sender pid recorded in $state"
     echo "SIGKILL to agent pid $PID from pid $$ (comm $(cat /proc/$$/comm))"
     kill -KILL "$PID"
     echo "Restart the agent, then run: $0 verify-kill"
 }
 
 run_verify_kill() {
-    [[ -f "$STATE" ]] || { echo "Run '$0 kill' first." >&2; exit 2; }
-    local sender
-    sender=$(cat "$STATE")
+    local state sender
+    state=$(state_file)
+    [[ -f "$state" ]] || { echo "$state not found: run '$0 kill' first." >&2; exit 2; }
+    sender=$(cat "$state")
     echo "Waiting up to 30s for the restarted agent's T1562.001 alert (sender pid $sender)"
     local found=0
     for _ in $(seq 1 30); do
@@ -151,7 +180,7 @@ run_verify_kill() {
     check "SIGKILL alert naming the sender" 1 "$found"
     # Two alerts are fine: the dying agent sometimes drains the live event before
     # the kill lands, and the replay reports it again.
-    rm -f "$STATE"
+    rm -f "$state"
 }
 
 case "$MODE" in

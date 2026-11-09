@@ -50,6 +50,7 @@ BASE=${1:-http://127.0.0.1}
 # The spawning parent's name: nginx by default, `apache2`, `httpd` or `php-fpm8.4` to
 # exercise the other names the lineage rule and the correlator accept.
 FAKE_COMM=${FAKE_COMM:-nginx}
+# Fixed path, on purpose (as in lineage.sh): the parent's image path is the stimulus.
 FAKE_WEBSERVER=/tmp/$FAKE_COMM
 
 require_command curl

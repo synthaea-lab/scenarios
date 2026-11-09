@@ -40,6 +40,8 @@ require_expect_mode
 
 PORT="${PORT:-4444}"
 CONNECTIONS="${CONNECTIONS:-30}"   # 30s of beaconing: enough for the verdict, far more than needed
+# Fixed default path, on purpose: the quarantine alert names it and the restore
+# instructions above put it back there. Override with PAYLOAD=.
 PAYLOAD="${PAYLOAD:-/tmp/synthaea-response-payload.bin}"
 MARKER="SYNTHAEA-RESPONSE-SCENARIO-MARKER"
 
