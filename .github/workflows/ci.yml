@@ -42,6 +42,8 @@ jobs:
         run: bash tools/test-run-json.sh
       - name: signal.sh keeps its kill/verify-kill state out of /tmp
         run: bash tools/test-signal-state.sh
+      - name: signal.sh preconditions and PASS/FAIL verdict
+        run: bash tools/test-signal-checks.sh
 
   python-snippets:
     runs-on: ubuntu-latest
