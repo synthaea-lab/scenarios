@@ -79,6 +79,28 @@ jobs:
       - name: bits-job and windows-container PASS/FAIL verdicts
         run: pwsh -NoProfile -File tools/test-scenario-verdicts.ps1
 
+  compiled-sources:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The C and Rust stimuli are built by hand on a test machine, so nothing else would
+      # notice when they stop compiling. Syntax and type checks only: no binary is produced.
+      - name: C sources compile (gcc -fsyntax-only)
+        run: |
+          gcc --version | head -n 1
+          git ls-files -z '*.c' | xargs -0 -r -n 1 gcc -fsyntax-only -Wall -Wextra -Werror -pthread
+      - name: Rust sources compile (rustc --emit=metadata)
+        run: |
+          rustc --version
+          out=$(mktemp -d)
+          git ls-files -z '*.rs' | while IFS= read -r -d '' src; do
+            echo "rustc $src"
+            rustc --edition 2021 --crate-type bin --emit=metadata -D warnings \
+              --out-dir "$out" "$src" || exit 1
+          done
+
   sidecar-bytes:
     runs-on: ubuntu-latest
     steps:
