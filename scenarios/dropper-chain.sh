@@ -28,6 +28,7 @@ PORT=8080
 OUT_FILE=$(mktemp /tmp/edr-test-dropper-payload.XXXXXX)
 
 add_cleanup rm -f "$OUT_FILE"
+# shellcheck disable=SC2016  # $1... are the inner bash's positional parameters
 start_loopback_listener '
   resp="HTTP/1.1 200 OK\r\nContent-Length: 7\r\n\r\npayload"
   while true; do

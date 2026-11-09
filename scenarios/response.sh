@@ -48,6 +48,7 @@ MARKER="SYNTHAEA-RESPONSE-SCENARIO-MARKER"
 require_command nc "the listener needs it"
 
 add_cleanup rm -f "$PAYLOAD"
+# shellcheck disable=SC2016  # $1... are the inner bash's positional parameters
 start_loopback_listener '
   while true; do
     nc -l -p "$1" >/dev/null 2>&1 || nc -l "$1" >/dev/null 2>&1

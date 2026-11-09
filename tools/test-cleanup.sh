@@ -5,6 +5,8 @@
 #
 #   tools/test-cleanup.sh
 
+# shellcheck disable=SC2016  # the single-quoted snippets run in an inner bash, which expands them
+
 set -uo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
