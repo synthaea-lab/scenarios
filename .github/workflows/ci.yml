@@ -73,6 +73,8 @@ jobs:
       # agent harness must keep writing the lab agent.toml byte for byte.
       - name: PowerShell scripts parse; common.ps1 harness helpers
         run: pwsh -NoProfile -File tools/test-common-ps1.ps1
+      - name: bits-job and windows-container PASS/FAIL verdicts
+        run: pwsh -NoProfile -File tools/test-scenario-verdicts.ps1
 
   sidecar-bytes:
     runs-on: ubuntu-latest
