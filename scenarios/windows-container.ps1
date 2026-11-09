@@ -67,76 +67,10 @@ public static class SynthaeaSilo {
 }
 '@
 
-# -- Agent harness (-AgentExe), as in bits-job.ps1 ----------------------------
-
-function Start-ScenarioAgent([string]$Dir) {
-    if (-not (Test-Path $AgentExe)) { throw "agent.exe not found at $AgentExe (cargo build --release -p agent)" }
-    if (Get-Process -Name "agent" -ErrorAction SilentlyContinue) {
-        throw "An agent.exe is already running; stop it first (this run starts its own)."
-    }
-    $exe = (Resolve-Path $AgentExe).Path
-    $config = Join-Path $Dir "agent.toml"
-    @"
-schema_version = 1
-
-[server]
-control_plane_url = "https://cp.lab.invalid"
-mtls_cert = '$Dir\certs\client.crt'
-mtls_key = '$Dir\certs\client.key'
-mtls_passphrase = "envvar:SYNTHAEA_MTLS_PASSPHRASE"
-offline_fallback = true
-
-[log]
-dir = '$Dir\logs'
-level = "info"
-max_mb = 64
-
-[storage]
-state_dir = '$Dir\state'
-spool_max_mb = 64
-
-[ipc]
-endpoint = '\\.\pipe\synthaea-lab-container'
-
-[resources]
-worker_threads = 0
-max_reconnect_backoff_ms = 60000
-"@ | Set-Content -LiteralPath $config -Encoding Ascii
-    $events = Join-Path $Dir "events.jsonl"
-    $alerts = Join-Path $Dir "alerts.ndjson"
-    $agentArgs = @("--config", "`"$config`"", "run", "--alerts", "`"$alerts`"", "--events", "`"$events`"")
-    $proc = Start-Process -FilePath $exe -ArgumentList $agentArgs -WorkingDirectory $Dir `
-        -RedirectStandardOutput "$Dir\stdout.log" -RedirectStandardError "$Dir\stderr.log" `
-        -WindowStyle Hidden -PassThru
-    Write-Host "agent started (pid $($proc.Id)), output in $Dir"
-    $deadline = (Get-Date).AddSeconds(30)
-    while (-not ((Test-Path $events) -and (Get-Item $events).Length -gt 0)) {
-        if ($proc.HasExited) { throw "the agent exited at startup; see $Dir\stderr.log" }
-        if ((Get-Date) -gt $deadline) { throw "the agent produced no events in 30s; see $Dir\stderr.log" }
-        Start-Sleep -Milliseconds 500
-    }
-    Start-Sleep -Seconds 2
-    if ((Get-Content -LiteralPath "$Dir\stderr.log" -Raw -ErrorAction SilentlyContinue) -match "ETW sensor failed") {
-        Stop-Process -Id $proc.Id -Force
-        throw "the agent's ETW sensor failed to start; see $Dir\stderr.log"
-    }
-    [pscustomobject]@{ Process = $proc; Events = $events }
-}
-
-function Stop-ScenarioAgent($Agent) {
-    if ($Agent -and -not $Agent.Process.HasExited) {
-        Stop-Process -Id $Agent.Process.Id -Force
-        $Agent.Process.WaitForExit(10000) | Out-Null
-    }
-}
-
 # -- Scenario ------------------------------------------------------------------
 
 function Assert-Prerequisites {
-    $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
-    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-        throw "needs an elevated PowerShell (the agent's ETW session, logman, hcsdiag)"
-    }
+    Assert-Administrator "needs an elevated PowerShell (the agent's ETW session, logman, hcsdiag)"
     if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { throw "docker not found on PATH" }
     $osType = (docker info --format "{{.OSType}}" 2>$null)
     if ($osType -ne "windows") { throw "docker is not in Windows-containers mode (OSType=$osType)" }
@@ -261,7 +195,7 @@ $siloIds = @()
 logman stop $TraceName -ets 2>$null | Out-Null
 Invoke-Native logman @("start", $TraceName, "-p", "Microsoft-Windows-Kernel-Process", "0x4000", "-ets", "-o", "$dir\silo.etl")
 try {
-    if ($AgentExe) { $agent = Start-ScenarioAgent $dir }
+    if ($AgentExe) { $agent = Start-ScenarioAgent -AgentExe $AgentExe -Dir $dir -PipeName "synthaea-lab-container" }
     $run = Invoke-ContainerScenario $agent
     # @(): a function's one-element array comes back unrolled to a bare string, and
     # Test-Scenario's $SiloIds[0] then reads its first character ("2" of "220").

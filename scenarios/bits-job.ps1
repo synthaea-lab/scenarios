@@ -56,80 +56,13 @@ $Source = "$env:SystemRoot\System32\whoami.exe"
 $Target = Join-Path $env:TEMP "payload284.exe"
 $Url = "http://localhost:$Port/payload284.exe"
 
-# -- Agent harness (-AgentExe) -------------------------------------------------
+# -- Agent harness (-AgentExe, Start-ScenarioAgent in common.ps1) ---------------
 
-function Start-ScenarioAgent {
-    $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
-    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-        throw "-AgentExe needs an elevated PowerShell: the agent's ETW session needs Administrator."
-    }
-    if (-not (Test-Path $AgentExe)) { throw "agent.exe not found at $AgentExe (cargo build --release -p agent)" }
-    if (Get-Process -Name "agent" -ErrorAction SilentlyContinue) {
-        throw "An agent.exe is already running; stop it first (this run starts its own)."
-    }
-    $exe = (Resolve-Path $AgentExe).Path
+function Start-BitsAgent {
+    Assert-Administrator "-AgentExe needs an elevated PowerShell: the agent's ETW session needs Administrator."
     $dir = $OutDir
     if (-not $dir) { $dir = Join-Path $PSScriptRoot ("..\..\target\lab-validation\bits-" + (Get-Date -Format "yyyyMMdd-HHmmss")) }
-    New-Item -ItemType Directory -Force -Path $dir | Out-Null
-    $dir = (Resolve-Path $dir).Path
-    $config = Join-Path $dir "agent.toml"
-    # Same template as rig\runner\windows\validate-admin.ps1: offline, nothing
-    # outside the run directory.
-    @"
-schema_version = 1
-
-[server]
-control_plane_url = "https://cp.lab.invalid"
-mtls_cert = '$dir\certs\client.crt'
-mtls_key = '$dir\certs\client.key'
-mtls_passphrase = "envvar:SYNTHAEA_MTLS_PASSPHRASE"
-offline_fallback = true
-
-[log]
-dir = '$dir\logs'
-level = "info"
-max_mb = 64
-
-[storage]
-state_dir = '$dir\state'
-spool_max_mb = 64
-
-[ipc]
-endpoint = '\\.\pipe\synthaea-lab-bits'
-
-[resources]
-worker_threads = 0
-max_reconnect_backoff_ms = 60000
-"@ | Set-Content -LiteralPath $config -Encoding Ascii
-    $events = Join-Path $dir "events.jsonl"
-    $alerts = Join-Path $dir "alerts.ndjson"
-    $agentArgs = @("--config", "`"$config`"", "run", "--alerts", "`"$alerts`"", "--events", "`"$events`"")
-    $proc = Start-Process -FilePath $exe -ArgumentList $agentArgs -WorkingDirectory $dir `
-        -RedirectStandardOutput "$dir\stdout.log" -RedirectStandardError "$dir\stderr.log" `
-        -WindowStyle Hidden -PassThru
-    Write-Host "agent started (pid $($proc.Id)), output in $dir"
-    # Ready once the first event lands: the pid store is seeded and the trace runs.
-    $deadline = (Get-Date).AddSeconds(30)
-    while (-not ((Test-Path $events) -and (Get-Item $events).Length -gt 0)) {
-        if ($proc.HasExited) { throw "the agent exited at startup; see $dir\stderr.log" }
-        if ((Get-Date) -gt $deadline) { throw "the agent produced no events in 30s; see $dir\stderr.log" }
-        Start-Sleep -Milliseconds 500
-    }
-    # The Event Log sensor keeps writing events when ETW is down, so the first
-    # event alone does not prove the trace is up.
-    Start-Sleep -Seconds 2
-    if ((Get-Content -LiteralPath "$dir\stderr.log" -Raw -ErrorAction SilentlyContinue) -match "ETW sensor failed") {
-        Stop-Process -Id $proc.Id -Force
-        throw "the agent's ETW sensor failed to start; see $dir\stderr.log"
-    }
-    [pscustomobject]@{ Process = $proc; Dir = $dir; Events = $events; Alerts = $alerts }
-}
-
-function Stop-ScenarioAgent($Agent) {
-    if ($Agent -and -not $Agent.Process.HasExited) {
-        Stop-Process -Id $Agent.Process.Id -Force
-        $Agent.Process.WaitForExit(10000) | Out-Null
-    }
+    Start-ScenarioAgent -AgentExe $AgentExe -Dir $dir -PipeName "synthaea-lab-bits"
 }
 
 function Test-ScenarioAgent($Agent) {
@@ -267,7 +200,7 @@ function Show-BitsLogRecords([datetime]$Since) {
 $agent = $null
 $started = Get-Date
 try {
-    if ($AgentExe) { $agent = Start-ScenarioAgent }
+    if ($AgentExe) { $agent = Start-BitsAgent }
     Invoke-BitsScenario
     if ($agent) { Start-Sleep -Seconds 8 }
 }
