@@ -82,30 +82,54 @@ as_nobody() {
     fi
 }
 
-check() {
+# Self-check verdict. FAILURES counts the failed checks; it is the one global the
+# helpers below change, and only fail_check changes it. The script's exit status
+# is decided from it at the end.
+
+# fail_check MESSAGE — print a FAIL line and count it in FAILURES.
+fail_check() {
+    echo "  FAIL  $1"
+    FAILURES=$((FAILURES + 1))
+}
+
+# expect_equal LABEL EXPECTED ACTUAL — print a PASS line if ACTUAL equals
+# EXPECTED, else a FAIL line (through fail_check).
+expect_equal() {
     local label=$1 expected=$2 actual=$3
     if [[ "$actual" == "$expected" ]]; then
         echo "  PASS  $label ($actual)"
     else
-        echo "  FAIL  $label: expected $expected, got $actual"
-        FAILURES=$((FAILURES + 1))
+        fail_check "$label: expected $expected, got $actual"
     fi
 }
 
-require_agent() {
-    PID=$(agent_pid)
-    if [[ -z "$PID" ]] || ! kill -0 "$PID" 2>/dev/null; then
+# running_agent_pid_or_exit — print the pid of the running agent (see agent_pid).
+# Exits 2 if there is none. Call it as `pid=$(running_agent_pid_or_exit)` on its
+# own line (not `local pid=$(...)`), so set -e carries the exit to the script; the
+# signals the scenario sends stay in the main shell.
+running_agent_pid_or_exit() {
+    local pid
+    pid=$(agent_pid)
+    if [[ -z "$pid" ]] || ! kill -0 "$pid" 2>/dev/null; then
         echo "No running agent found (set AGENT_PID)." >&2
         exit 2
     fi
+    echo "$pid"
+}
+
+# require_event_files — exit 2 unless the agent's EVENTS and ALERTS files exist.
+require_event_files() {
+    local f
     for f in "$EVENTS" "$ALERTS"; do
         [[ -f "$f" ]] || { echo "$f not found (set EVENTS/ALERTS)." >&2; exit 2; }
     done
 }
 
 run_live() {
-    require_agent
-    echo "Agent pid $PID, kernel $(uname -r)"
+    local pid
+    pid=$(running_agent_pid_or_exit)
+    require_event_files
+    echo "Agent pid $pid, kernel $(uname -r)"
 
     echo "1) Unrelated signal traffic (must stay invisible)"
     sleep 300 & local a=$!
@@ -120,46 +144,46 @@ run_live() {
     kill -TERM "$a" "$b"
     wait "$a" "$b" 2>/dev/null || true
     sleep "$FLUSH_WAIT"
-    check "Signal events from 62 unrelated signals" 0 $(($(count_signal_events) - before))
+    expect_equal "Signal events from 62 unrelated signals" 0 $(($(count_signal_events) - before))
 
     echo "2) Existence probe to the agent (event, no alert)"
     before=$(count_signal_events)
     local alerts_before
     alerts_before=$(count_tamper_alerts)
-    kill -0 "$PID"
+    kill -0 "$pid"
     sleep "$FLUSH_WAIT"
-    check "Signal events from kill -0" 1 $(($(count_signal_events) - before))
-    check "T1562.001 alerts from kill -0" 0 $(($(count_tamper_alerts) - alerts_before))
+    expect_equal "Signal events from kill -0" 1 $(($(count_signal_events) - before))
+    expect_equal "T1562.001 alerts from kill -0" 0 $(($(count_tamper_alerts) - alerts_before))
 
     echo "3) Unprivileged SIGTERM and SIGKILL to the agent (EPERM, still attributed)"
     before=$(count_signal_events)
     alerts_before=$(count_tamper_alerts)
-    as_nobody kill -TERM "$PID" 2>/dev/null || true
-    as_nobody kill -KILL "$PID" 2>/dev/null || true
+    as_nobody kill -TERM "$pid" 2>/dev/null || true
+    as_nobody kill -KILL "$pid" 2>/dev/null || true
     sleep "$FLUSH_WAIT"
-    check "Signal events from the two attempts" 2 $(($(count_signal_events) - before))
-    check "T1562.001 alerts from the two attempts" 2 $(($(count_tamper_alerts) - alerts_before))
-    if kill -0 "$PID" 2>/dev/null; then
+    expect_equal "Signal events from the two attempts" 2 $(($(count_signal_events) - before))
+    expect_equal "T1562.001 alerts from the two attempts" 2 $(($(count_tamper_alerts) - alerts_before))
+    if kill -0 "$pid" 2>/dev/null; then
         echo "  PASS  agent survived the EPERM attempts"
     else
-        echo "  FAIL  agent is gone"
-        FAILURES=$((FAILURES + 1))
+        fail_check "agent is gone"
     fi
     echo "  The survived SIGKILL is cleared from the pinned slot within ~10s, so it"
     echo "  must NOT be reported on the next restart (checked by 'kill' + 'verify-kill')."
 }
 
 run_kill() {
-    require_agent
-    local state
+    local pid state
+    pid=$(running_agent_pid_or_exit)
+    require_event_files
     state=$(state_file)   # before the kill: no state directory, no kill
     # Wait out the sweep of any SIGKILL attempt from a previous live run, so the
     # slot can only hold the kill below.
     sleep 12
     echo "$$" >"$state"
     echo "Sender pid recorded in $state"
-    echo "SIGKILL to agent pid $PID from pid $$ (comm $(cat /proc/$$/comm))"
-    kill -KILL "$PID"
+    echo "SIGKILL to agent pid $pid from pid $$ (comm $(cat /proc/$$/comm))"
+    kill -KILL "$pid"
     echo "Restart the agent, then run: $0 verify-kill"
 }
 
@@ -177,7 +201,7 @@ run_verify_kill() {
         fi
         sleep 1
     done
-    check "SIGKILL alert naming the sender" 1 "$found"
+    expect_equal "SIGKILL alert naming the sender" 1 "$found"
     # Two alerts are fine: the dying agent sometimes drains the live event before
     # the kill lands, and the replay reports it again.
     rm -f "$state"
