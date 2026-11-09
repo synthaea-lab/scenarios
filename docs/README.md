@@ -15,8 +15,8 @@ The repository is consumed by three things, none of which live here:
 - a person on a test machine, who runs the agent in one terminal and a scenario in another.
 
 The pages below explain the formats these consumers rely on, how the scripts are built and why,
-and how to add to them. Code comments in the scripts stay short and state the why of one line;
-the design reasons that span scripts are here.
+and how to add to them. Each script's header comment covers that script; the design reasons
+that span scripts are here.
 
 **Safety.** Every scenario cleans up after itself, talks only to loopback listeners or names
 that never resolve, and touches only files it created. It still behaves like an attack

@@ -17,7 +17,7 @@ simulates: >
   Periodic same-destination C2 traffic.
 expected_detections:
   - technique: "T1071/T1041"
-    rule: check_beacon       # crates/rules/src/state.rs
+    rule: check_beacon       # crates/rules/src/network_state.rs
     min_count: 1
     tolerance: 0
   - technique: "T1059/T1071"

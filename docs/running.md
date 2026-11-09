@@ -116,7 +116,7 @@ to expect. The [catalog](linux-scenarios.md) summarizes the requirements. In sho
 | An `agent.toml` entry | `mysql-failed-login`, `web-webshell`, `web-webshell-php`, `web-custom-logformat` (`[[logs.sources]]`); `ransomware-reflex` (`[deception] canary_dirs`) |
 | Extra content | `response` (`response-marker.yar` under `<content-dir>/rules/yara/`) |
 | A real service | `mysql-failed-login` (MariaDB or MySQL), `web-*` (nginx or Apache, PHP-FPM for `web-webshell-php`) |
-| Kernel features | `timestomp-linux` (BPF LSM active, kernel 6.3 or later), `dns-exfil` (glibc) |
+| Kernel or libc | `timestomp-linux` (BPF LSM active, kernel 6.3 or later), `dns-exfil` (glibc) |
 | A control plane | `prevalence-lineage` (two enrolled hosts, not `--standalone`) |
 
 `signal.sh` reads the agent's files itself: run it from the directory where the agent writes

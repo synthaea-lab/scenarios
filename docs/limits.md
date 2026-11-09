@@ -64,10 +64,13 @@ What the scenarios prove, and what they do not.
   often a detection fires, the sidecar stays wrong until the next retrain, and the rig reports a
   `FAIL` in the meantime.
 - **Header comments can lag.** A script's header describes the expected alert text and
-  sometimes the agent internals at the time it was written. The sidecar and the rig's result are
-  the reference; report a stale header as a documentation fix.
+  sometimes the agent internals at the time it was written; a sidecar's `rule:` comments are
+  frozen with its bytes and may name an agent file that has since been split. The sidecar's
+  counts and the rig's result are the reference; report a stale header as a documentation fix.
 - **Exit codes differ by platform.** The Linux scripts separate an unmet precondition (2) from a
   failed self-check (1); the Windows scripts exit 1 for both. Not every Linux script checks every
-  tool it uses before starting: some (`beacon.sh`, `bind-shell.sh`, `respawn-beacon.sh`, `dropper-chain.sh`) rely on
-  the rig's `needs` column to skip a host without `nc` or `curl`, and fail with a shell error when run by
-  hand without it.
+  tool it uses before starting: `beacon.sh`, `bind-shell.sh`, `respawn-beacon.sh` and
+  `dropper-chain.sh` rely on the rig's `needs` column to skip a host without `nc` or `curl`, and
+  misbehave when run by hand without them: their `nc` and `curl` calls end in `|| true`, so
+  `beacon.sh`, `respawn-beacon.sh` and `dropper-chain.sh` exit 0 without producing the stimulus,
+  and `bind-shell.sh` exits 1 from its self-check. Neither is the precondition code 2.

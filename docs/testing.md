@@ -1,7 +1,7 @@
 # Testing
 
 Two levels of testing apply to this repository. The repository checks run anywhere, unprivileged,
-in under a minute or two, and catch broken scripts and helpers. Whether a scenario still triggers
+in about a minute, and catch broken scripts and helpers. Whether a scenario still triggers
 its detections can only be shown on a real kernel or Windows build against a live agent, which is
 the rig's job.
 

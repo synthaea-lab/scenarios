@@ -63,8 +63,8 @@ message and listed nowhere. The run exits 1 if none ran.
 Each declares `# Odd by: comm` or `# Odd by: path`, and is odd by exactly that: the `comm` ones run
 from the user's directory so their path is ordinary, and the path one uses names that are neither
 web-server nor Office names. A gain measured on a scenario odd by both could not be credited to
-either feature. `tests/test_odd_parent_scenarios.py` in the ml repository keeps the declarations
-true. The Office one measures how the model treats a value it never saw in training, since no Linux
+either feature. [`tests/test_odd_parent_scenarios.py`](https://github.com/synthaea-lab/ml/blob/main/tests/test_odd_parent_scenarios.py)
+in the ml repository keeps the declarations true. The Office one measures how the model treats a value it never saw in training, since no Linux
 host runs an Office binary; say so when reporting a number on it. These scenarios have no sidecar:
 they exist for this capture, not for the rule suite.
 

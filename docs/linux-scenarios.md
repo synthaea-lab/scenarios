@@ -9,15 +9,33 @@ Expectations are written `technique ×min_count(+tolerance)`, as the rig prints 
 a scenario runs as an ordinary user against `agent run --standalone`, and the rig runs it in its
 `default` set.
 
-Most rules referenced here live in two files of the agent's `rules` crate:
-[`stateless.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless.rs)
-(one event, one verdict) and
-[`state.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/state.rs)
-(`RuleState`: windows, counters, per-pid memory). Correlation rules live in
-[`crates/correlator/src/rules.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/correlator/src/rules.rs).
-The agent's [rules](https://github.com/synthaea-lab/agent/blob/main/docs/detection/rules.md) and
+The rules named below live in the agent's `rules` crate, either in
+[`stateless/`](https://github.com/synthaea-lab/agent/tree/main/crates/rules/src/stateless) (one
+event, one verdict, one file per tactic) or in `state.rs` and its `*_state.rs` siblings
+(`RuleState`: windows, counters, per-pid memory); correlation rules live in the correlator. The agent's
+[rules](https://github.com/synthaea-lab/agent/blob/main/docs/detection/rules.md) and
 [correlation](https://github.com/synthaea-lab/agent/blob/main/docs/correlation.md) pages describe
 them.
+
+| Function | Source |
+| --- | --- |
+| `check_base64_decode` | [`crates/rules/src/stateless/execution.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless/execution.rs) |
+| `check_ld_preload_hijack` | [`crates/rules/src/stateless/privilege_escalation.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless/privilege_escalation.rs) |
+| `check_persistence_write` | [`crates/rules/src/stateless/persistence.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless/persistence.rs) |
+| `check_log_file_delete`, `evaluate_file_set_time` | [`crates/rules/src/stateless/indicator_removal.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless/indicator_removal.rs) |
+| `check_security_process_signal` | [`crates/rules/src/stateless/impair_defenses.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless/impair_defenses.rs) |
+| `check_web_server_spawns_shell` | [`crates/rules/src/state.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/state.rs) |
+| `check_beacon` | [`crates/rules/src/network_state.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/network_state.rs) |
+| `check_mass_rename_pattern` | [`crates/rules/src/impact_state.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/impact_state.rs) |
+| `check_listen_port_drift` | [`crates/rules/src/drift_state.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/drift_state.rs) |
+| `on_auth` (brute force) | [`crates/rules/src/auth_state.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/auth_state.rs) |
+| `rule_respawn_connect`, `rule_spawn_connect`, `rule_spawn_connect_filewrite`, `rule_dns_exfil`, `rule_web_request_shell` | [`crates/correlator/src/rules.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/correlator/src/rules.rs) |
+| The ransomware reflex | [`apps/agent/src/ransomware_join.rs`](https://github.com/synthaea-lab/agent/blob/main/apps/agent/src/ransomware_join.rs) |
+
+The `rule:` comments inside the sidecars were written with the sidecar and are frozen with its
+bytes ([sidecar-format.md](sidecar-format.md#hash-binding)), so some name a file the agent has
+since split (`stateless.rs`, or `state.rs` for a rule now in a `*_state.rs` file). The table
+above is the current location.
 
 ## Process and command line
 
@@ -40,7 +58,8 @@ Shape decisions, all in [`lib/common.sh`](../lib/common.sh):
 - Bash and dash execute a `-c` body consisting of one simple command in place instead of forking,
   which would make the leaf a child of the scenario rather than of `nginx`. The inner command is
   therefore wrapped in an explicit subshell, `(/bin/sh -c "id >/dev/null")` (`spawn_shells_from`).
-- The path `/tmp/nginx` is fixed because the rig's lineage validation looks for it.
+- The fake parent sits at the fixed path `/tmp/nginx`, which its exec events name, so
+  a run is easy to find in `events.jsonl`.
 
 ### `argv.sh`
 
@@ -193,7 +212,7 @@ like) is not exercised.
 ### `timestomp-linux.sh`
 
 [Script](../scenarios/timestomp-linux.sh) · [sidecar](../scenarios/timestomp-linux.yaml) ·
-`T1070.006 ×3` · needs the BPF LSM active and kernel 6.3 or later
+`T1070.006 ×3` · needs `python3`, the BPF LSM active and kernel 6.3 or later
 
 Sets file times explicitly three ways (`touch -d`, Python `os.utime`, `touch -m -d`), then makes
 three changes that must stay silent: a write (the kernel sets the mtime), a plain `touch`

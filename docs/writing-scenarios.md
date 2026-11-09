@@ -99,8 +99,8 @@ The `nc -l -p PORT || nc -l PORT` pair covers both traditional and OpenBSD/busyb
 | `make_workdir VAR BASE PREFIX` | Create `BASE/PREFIXxxxxxx` with `mktemp -d`, store its path in the variable named `VAR`, register its removal. Exits 1 if it cannot be created |
 | `create_throwaway_files DIR COUNT PATTERN` | Create `COUNT` empty files named by the `printf` format `PATTERN` applied to 0 through `COUNT - 1`. Builtins only, so it adds no process to the tree |
 
-Keep `PREFIX` stable: detection rules and validation may key on the path
-(`$HOME/synthaea-scenario-*`).
+Keep `PREFIX` stable and recognizable (most scenarios use `synthaea-scenario-<name>-`): it is how
+a scenario's files are told apart from the host's in the event log.
 
 ### Preconditions
 
