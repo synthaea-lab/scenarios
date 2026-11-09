@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Checks make_workdir and create_throwaway_files in lib/common.sh, and that the
 # unprivileged scenarios built on them run and leave nothing behind. Runs unprivileged
-# and writes only to a temporary directory (passed to the scenarios as HOME).
+# and writes only to a temporary directory (passed to the scenarios as HOME), plus a
+# throwaway canary directory under the repository or HOME (see ransomware-reflex below).
 #
 #   tools/test-workdir.sh
 
@@ -103,7 +104,7 @@ expect_equal 3 "$(find "$files" -type f | wc -l)" "COUNT=0 creates nothing"
 
 # run_scenario DESCRIPTION WANT_OUTPUT_SUBSTRING [ENV=VALUE...] SCRIPT [ARG...] — run a
 # scenario with HOME pointing at an empty directory; it must exit 0, print the
-# substring, and leave HOME empty.
+# substring, and leave HOME empty. Returns non-zero if any of that does not hold.
 run_scenario() {
     local description=$1 want=$2 home="$work/home" out rc
     shift 2
@@ -119,7 +120,25 @@ run_scenario() {
         fail "$description: left $(ls -A "$home") in HOME"
     else
         pass "$description"
+        return 0
     fi
+    return 1
+}
+
+# canary_base — print a writable directory that ransomware-reflex accepts as the parent
+# of CANARY_DIR (it refuses anything under /tmp, /var/tmp or /dev/shm), or nothing.
+# mktemp -d lands under /tmp when TMPDIR is unset, so the canary cannot live in $work.
+canary_base() {
+    local candidate
+    for candidate in "$REPO" "${HOME:-}"; do
+        case "$candidate" in
+            "" | /tmp | /var/tmp | /dev/shm | /tmp/* | /var/tmp/* | /dev/shm/*) continue ;;
+        esac
+        if [ -d "$candidate" ] && [ -w "$candidate" ]; then
+            echo "$candidate"
+            return
+        fi
+    done
 }
 
 if command -v python3 >/dev/null 2>&1; then
@@ -132,13 +151,22 @@ if command -v python3 >/dev/null 2>&1; then
 
     # ransomware-reflex against a hand-made canary, observe side: every throwaway
     # file is created and renamed, then removed.
-    canaries="$work/canaries"
-    mkdir "$canaries"
-    printf '# SYNTHAEA DECOY\n' > "$canaries/decoy.txt"
-    run_scenario "ransomware-reflex observe" "files renamed: 30 of 30" \
-        CANARY_DIR="$canaries" EXPECT=observe COUNT=30 PAUSE=0 \
-        bash "$REPO/scenarios/ransomware-reflex.sh"
-    expect_equal "decoy.txt" "$(ls -A "$canaries")" "ransomware-reflex leaves only the canary"
+    canary_parent=$(canary_base)
+    if [ -z "$canary_parent" ]; then
+        echo "skip: no writable directory outside /tmp, /var/tmp and /dev/shm for CANARY_DIR, ransomware-reflex skipped"
+    elif ! canaries=$(mktemp -d "$canary_parent/.test-workdir-canaries-XXXXXX"); then
+        fail "cannot create a canary directory under $canary_parent"
+    else
+        add_cleanup rm -rf "$canaries"
+        printf '# SYNTHAEA DECOY\n' > "$canaries/decoy.txt"
+        # Only meaningful once the scenario has actually run: a precondition exit leaves
+        # the directory untouched and would pass this check for the wrong reason.
+        if run_scenario "ransomware-reflex observe" "files renamed: 30 of 30" \
+            CANARY_DIR="$canaries" EXPECT=observe COUNT=30 PAUSE=0 \
+            bash "$REPO/scenarios/ransomware-reflex.sh"; then
+            expect_equal "decoy.txt" "$(ls -A "$canaries")" "ransomware-reflex leaves only the canary"
+        fi
+    fi
 else
     echo "skip: python3 not found, scenario runs skipped"
 fi
