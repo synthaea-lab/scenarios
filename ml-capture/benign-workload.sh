@@ -27,7 +27,9 @@
 # then stop the capture. DURATION is in seconds (default 900). SEED makes the order of jobs
 # repeatable. The script prints the start and end (ns since the epoch) of the run.
 
-set -u
+# No `-e`: every job is best-effort by design (`|| true` in the loop below), and a missing
+# tool must not end the capture early.
+set -uo pipefail
 
 DURATION="${DURATION:-900}"
 SEED="${SEED:-1}"

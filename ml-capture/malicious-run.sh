@@ -19,11 +19,15 @@
 # servers, MySQL), `signal.sh` (aims at the agent) and the ransomware ones (they exercise the
 # response path, not behavior scoring) are left out.
 
-set -u
+# No `-e`: a scenario that fails is data (listed under `failed`), not a reason to stop the run.
+set -uo pipefail
 
 . "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/run-json.sh"
 
 require_root "sudo $0 <out-dir>"
+# Checked now, not when run.json is written at the end of a run of several minutes.
+require_command python3 "it writes run.json"
 OUT="${1:?usage: $0 <out-dir>}"
 mkdir -p "$OUT"
 SCENARIO_DIR="$(cd "$(dirname "$0")/../scenarios" && pwd)"
@@ -60,10 +64,8 @@ for name in "${SCENARIOS[@]}"; do
 done
 END_NS="$(date +%s%N)"
 
-printf '{\n  "root_pid": %s,\n  "start_ns": %s,\n  "end_ns": %s,\n  "ran": [%s],\n  "failed": [%s]\n}\n' \
-    "$$" "$START_NS" "$END_NS" \
-    "$(printf '"%s",' "${RAN[@]:-}" | sed 's/,$//; s/^""$//')" \
-    "$(printf '"%s",' "${FAILED[@]:-}" | sed 's/,$//; s/^""$//')" > "$OUT/run.json"
+write_run_json "$OUT/run.json" "$$" "$START_NS" "$END_NS" "${#RAN[@]}" "${RAN[@]}" "${FAILED[@]}" \
+    || { echo "cannot write $OUT/run.json" >&2; exit 1; }
 cat "$OUT/run.json"
 
 # A run in which nothing ran is not a capture of malicious behavior: say so, so a script
