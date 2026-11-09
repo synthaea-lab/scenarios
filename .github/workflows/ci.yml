@@ -37,6 +37,22 @@ jobs:
       - name: ML capture run.json writer
         run: bash tools/test-run-json.sh
 
+  python-snippets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Pinned: an unpinned ruff release can start flagging unchanged code.
+      - name: Install ruff
+        run: pipx install ruff==0.17.0
+      # The Python inline in the shell scripts stays inline (moving it to a file would change
+      # the argv the agent sees), so it is compiled and linted here.
+      - name: Inline Python compiles and lints clean
+        run: python3 tools/check-python-snippets.py --ruff ruff
+      - name: Inline Python checker
+        run: RUFF=ruff bash tools/test-python-snippets.sh
+
   powershell-ascii:
     runs-on: ubuntu-latest
     steps:

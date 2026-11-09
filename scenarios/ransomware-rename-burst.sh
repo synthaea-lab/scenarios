@@ -49,13 +49,13 @@ single)
     # One process for every rename — like a real encryptor's single binary. Caught by
     # the per-pid counter.
     echo "[single] Renaming all $COUNT files, appending .locked, from one process..."
-    python3 - "$DIR" "$COUNT" <<'EOF'
+    python3 - "$DIR" "$COUNT" <<'PY'
 import os, sys
 d, n = sys.argv[1], int(sys.argv[2])
 for i in range(n):
     src = os.path.join(d, f"file{i}.docx")
     os.rename(src, src + ".locked")
-EOF
+PY
     ;;
 loop)
     # A shell `mv` loop: each `mv` is its own short-lived pid, so the per-pid counter

@@ -46,7 +46,7 @@ QUERIES=16
 #    calling that same libc symbol.
 #
 # `python3` is assumed present — every current lab image has it.
-python3 - "$PARENT" "$QUERIES" <<'PYEOF'
+python3 - "$PARENT" "$QUERIES" <<'PY'
 import random
 import socket
 import string
@@ -64,6 +64,6 @@ for i in range(1, queries + 1):
         pass  # NXDOMAIN / unreachable resolver — expected for .invalid
     print(f"  q{i}: {name}")
     time.sleep(0.3)
-PYEOF
+PY
 
 echo "Done. Check for the T1048.003/T1071.004 alert in the agent output."
