@@ -155,6 +155,26 @@ make_fake_webserver() {
     fi
 }
 
+# spawn_shells_from FAKE ITERATIONS — the lineage stimulus: ITERATIONS times, one
+# second apart, have the fake web server FAKE (see make_fake_webserver) run a shell
+# that runs a leaf command. Used by lineage and prevalence-lineage.
+#
+# The loop runs in the caller's shell (call it directly, never inside `$(...)` or a
+# pipeline), so FAKE stays a direct child of the scenario and its ppid is unchanged.
+# The inner shell is wrapped in an explicit subshell because bash and dash exec a
+# `-c` body that is one simple command in place instead of forking, which would
+# leave the leaf's ppid on the scenario rather than on FAKE.
+spawn_shells_from() {
+    local fake=$1 iterations=$2 i
+    local inner_cmd='(/bin/sh -c "id >/dev/null")'
+    for i in $(seq 1 "$iterations"); do
+        # FAKE (comm 'nginx' or the like) execs a child shell, which execs the leaf.
+        "$fake" -c "$inner_cmd"
+        echo "  iteration $i done"
+        sleep 1
+    done
+}
+
 # Self-checking response scenarios (response, ransomware-reflex). They run once
 # against an agent started with the response enabled and once against one started
 # without it, and EXPECT says which, so the script knows what its own side should

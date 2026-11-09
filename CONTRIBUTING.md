@@ -45,6 +45,9 @@ Source the shared helpers instead of re-implementing them:
   its teardown.
 - `make_fake_webserver PATH [SH]` copies a shell to `PATH` under a web server's name; the
   scenario then spawns from that copy itself, so the parent and arguments stay its own.
+- `spawn_shells_from FAKE ITERATIONS` is the lineage stimulus: FAKE runs a shell that runs a
+  leaf command, once a second. Call it directly (not in `$(...)`), so FAKE stays a child of the
+  scenario.
 - `require_root`, `require_command`, `require_web_server` and `die_precondition` stop the
   scenario with exit code 2 when the host is not set up for it. Use exit code 1 only for a
   self-check that ran and failed.
@@ -109,7 +112,7 @@ python3 tools/check-sidecar-bytes.py
 | --- | --- |
 | `bash -n`, ShellCheck | Every shell script parses and has no warning-level findings |
 | `test-preconditions.sh` | The precondition helpers, and that scenarios which cannot run on this host exit with code 2 |
-| `test-fake-webserver.sh` | `make_fake_webserver` copies the right shell and the copy runs the spawn command |
+| `test-fake-webserver.sh` | `make_fake_webserver` copies the right shell and the copy runs the spawn command; `spawn_shells_from` spawns it with that command from the calling shell |
 | `test-workdir.sh` | `make_workdir` and `create_throwaway_files`, and that the unprivileged scenarios using them leave nothing behind |
 | `check-ps1-ascii.py` | Every PowerShell script is ASCII-only |
 | `test-common-ps1.ps1` | Every PowerShell script parses, and the agent harness writes the expected lab configuration |

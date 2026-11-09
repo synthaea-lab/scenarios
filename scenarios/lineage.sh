@@ -21,12 +21,12 @@
 # script's own shebang already requires bash, so a "no bash available" branch could
 # never be reached anyway (#430 review).
 #
-# Both cases wrap the inner shell in an explicit subshell (parens): bash and dash
-# both tail-call-optimize a `-c` script whose entire body is one simple command,
-# self-exec'ing in place rather than forking, which would leave the child's ppid
-# pointing at this script instead of at the nginx-named process. The subshell forces
-# the fork that optimization would otherwise skip — costs nothing on either shell,
-# and keeps the two branches identical in shape. Validated live on Alpine 6.18 (PR
+# spawn_shells_from (lib/common.sh) wraps the inner shell in an explicit subshell
+# (parens): bash and dash both tail-call-optimize a `-c` script whose entire body is
+# one simple command, self-exec'ing in place rather than forking, which would leave
+# the child's ppid pointing at this script instead of at the nginx-named process.
+# The subshell forces the fork that optimization would otherwise skip — costs
+# nothing on either shell, and keeps the two branches identical in shape. Validated live on Alpine 6.18 (PR
 # #415 review) — 3/3 alerts, 0 ppid=0.
 #
 # Usage:
@@ -50,15 +50,9 @@ ITERATIONS=3
 
 add_cleanup rm -f "$FAKE_WEBSERVER"
 make_fake_webserver "$FAKE_WEBSERVER"
-INNER_CMD='(/bin/sh -c "id >/dev/null")'
 
 echo "Spawning $ITERATIONS shells from a process named 'nginx' ($FAKE_WEBSERVER)..."
-for i in $(seq 1 "$ITERATIONS"); do
-    # The fake web server (comm 'nginx') execs a child shell, which execs a leaf command.
-    "$FAKE_WEBSERVER" -c "$INNER_CMD"
-    echo "  iteration $i done"
-    sleep 1
-done
+spawn_shells_from "$FAKE_WEBSERVER" "$ITERATIONS"
 
 echo "Done. Check the agent terminal: one T1059 alert per iteration means lineage is"
 echo "correct on this kernel ($(uname -r)); no alerts means #53 has regressed."

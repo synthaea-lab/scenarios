@@ -36,16 +36,10 @@ ITERATIONS=3
 mkdir -p "$DIR"
 add_cleanup rm -rf "$DIR"
 
-# See lineage.sh: the explicit subshell forces the fork that a tail-called `-c` would skip.
 make_fake_webserver "$FAKE_WEBSERVER"
-INNER_CMD='(/bin/sh -c "id >/dev/null")'
 
 echo "TAG=$TAG: spawning $ITERATIONS shells from $FAKE_WEBSERVER..."
-for i in $(seq 1 "$ITERATIONS"); do
-    "$FAKE_WEBSERVER" -c "$INNER_CMD"
-    echo "  iteration $i done"
-    sleep 1
-done
+spawn_shells_from "$FAKE_WEBSERVER" "$ITERATIONS"
 
 echo "Done. Expect $ITERATIONS T1059 alerts in the agent; the prevalence key is"
 echo "'$FAKE_WEBSERVER -> <shell image>'."
