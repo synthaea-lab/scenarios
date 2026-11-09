@@ -60,7 +60,7 @@ echo "canaries found: ${#CANARIES[@]}"
 cleanup() { rm -f "$CANARY_DIR"/doc_*.docx "$CANARY_DIR"/doc_*.docx.locked "${ENCRYPTOR_PY:-}"; }
 add_cleanup cleanup
 cleanup
-for i in $(seq 0 $((COUNT - 1))); do : > "$CANARY_DIR/doc_${i}.docx"; done
+create_throwaway_files "$CANARY_DIR" "$COUNT" 'doc_%d.docx'
 echo "created $COUNT throwaway files in $CANARY_DIR"
 
 # The encryptor: ONE process (the join is per pid), reads every canary by absolute path

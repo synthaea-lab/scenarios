@@ -13,8 +13,9 @@
 
 set -euo pipefail
 
-DIR=$(mktemp -d "${HOME}/timestomp-XXXXXX")
-trap 'rm -rf "$DIR"' EXIT
+. "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
+
+make_workdir DIR "$HOME" timestomp-
 mkdir -p "$DIR/sub/deeper"
 F="$DIR/sub/deeper/stomp.txt"
 echo x > "$F"

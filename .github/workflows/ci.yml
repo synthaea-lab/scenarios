@@ -32,6 +32,8 @@ jobs:
         run: bash tools/test-preconditions.sh
       - name: fake web server helper
         run: bash tools/test-fake-webserver.sh
+      - name: work directory and throwaway file helpers
+        run: bash tools/test-workdir.sh
       - name: EXPECT mode and self-check verdict helpers
         run: bash tools/test-self-check.sh
       - name: ML capture run.json writer

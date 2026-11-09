@@ -52,6 +52,41 @@ start_loopback_listener() {
     add_cleanup kill_process_group "$!"
 }
 
+# Throwaway work directory and files. Scenarios that rename, stomp or drop files do
+# it in a fresh directory of their own, so no real data is touched and nothing is
+# left behind.
+#
+# make_workdir VAR BASE PREFIX — create the directory BASE/PREFIXxxxxxx with
+# `mktemp -d`, store its path in the variable named VAR, and register its removal.
+# Exits 1 if the directory cannot be created.
+#
+# Keep PREFIX stable: detection rules and validate scripts may key on the path
+# (e.g. $HOME/synthaea-scenario-*). The path comes back through VAR rather than
+# through `$(make_workdir ...)`: a command substitution around the function would
+# put a subshell between the scenario and mktemp (changing the process tree under
+# test), and the removal registered in that subshell would be lost. Here mktemp
+# stays a direct child of the scenario's shell, as with an inline `$(mktemp -d ...)`.
+make_workdir() {
+    # Not named `dir`: a caller passing VAR=dir would only set this local.
+    local _workdir_path
+    _workdir_path=$(mktemp -d "$2/$3XXXXXX") && [ -d "$_workdir_path" ] \
+        || { echo "ERROR: cannot create a work directory under $2" >&2; exit 1; }
+    add_cleanup rm -rf "$_workdir_path"
+    printf -v "$1" '%s' "$_workdir_path"
+}
+
+# create_throwaway_files DIR COUNT PATTERN — create COUNT empty files in DIR, named
+# by the printf format PATTERN applied to 0..COUNT-1 (e.g. 'file%d.docx'). Builtins
+# only, so it adds no process to the scenario's tree.
+create_throwaway_files() {
+    local dir=$1 count=$2 pattern=$3 index name
+    for (( index = 0; index < count; index++ )); do
+        # shellcheck disable=SC2059  # PATTERN is the caller's printf format
+        printf -v name "$pattern" "$index"
+        : > "$dir/$name"
+    done
+}
+
 # Precondition checks. A scenario that cannot run here (not root, a tool or a
 # service missing) exits with PRECONDITION_EXIT_CODE, so a caller can tell "the
 # host is not set up for this" (2) from "the scenario ran and its self-check
