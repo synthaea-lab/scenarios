@@ -9,6 +9,7 @@
 set -uo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+. "$REPO/lib/common.sh"
 failures=0
 
 # expect_run WANT_RC WANT_STDOUT WANT_STDERR_SUBSTRING DESCRIPTION COMMAND [ARG...]
@@ -29,7 +30,7 @@ expect_run() {
 }
 
 stderr_file=$(mktemp)
-trap 'rm -f "$stderr_file"' EXIT
+add_cleanup rm -f "$stderr_file"
 
 # with_common SNIPPET — run SNIPPET in a fresh bash that has sourced lib/common.sh.
 with_common() {

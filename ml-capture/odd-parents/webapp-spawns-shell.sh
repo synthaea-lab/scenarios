@@ -19,11 +19,11 @@
 
 set -euo pipefail
 
+. "$(dirname "${BASH_SOURCE[0]}")/../../lib/common.sh"
+
 PY="$(command -v python3)" || { echo "python3 is needed" >&2; exit 1; }
-D=""
-trap '[ -n "$D" ] && rm -rf "$D"' EXIT
 mkdir -p "${HOME:?HOME must be set}/.local/share"
-D="$(mktemp -d "$HOME/.local/share/edr-odd-webapp.XXXXXX")" && [ -d "$D" ] || { D=""; echo "no work directory" >&2; exit 1; }
+make_workdir D "$HOME/.local/share" edr-odd-webapp.
 
 for name in gunicorn php-fpm uwsgi httpd; do
     ln -s "$PY" "$D/$name"

@@ -38,7 +38,9 @@ Source the shared helpers instead of re-implementing them:
 ```
 
 - `add_cleanup CMD [ARG...]` queues a teardown step; all steps run once on exit, in reverse order.
-  Do not set your own `trap ... EXIT`, which would replace them.
+  Do not set your own `trap ... EXIT`, which would replace them (`tools/test-cleanup.sh` fails
+  on one). For a step whose argument is only known at exit time, register a small named
+  function. `kill_process PID` and `remove_empty_dirs DIR...` are ready-made steps.
 - `start_loopback_listener BODY [ARG...]` runs a listener in its own process group and registers
   its teardown.
 - `make_fake_webserver PATH [SH]` copies a shell to `PATH` under a web server's name; the

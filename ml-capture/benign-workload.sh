@@ -31,30 +31,28 @@
 # tool must not end the capture early.
 set -uo pipefail
 
+. "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
+
 DURATION="${DURATION:-900}"
 SEED="${SEED:-1}"
 # Unchecked, a failing mktemp (a full /tmp is enough) leaves WL empty and `set -u` does not
 # fire on an empty value: as root, the mkdir/cp below would then write /bin, /data and /out.
 WL="$(mktemp -d /tmp/edr-ml-workload.XXXXXX)" && [ -n "$WL" ] && [ -d "$WL" ] \
     || { echo "cannot create the working directory under /tmp" >&2; exit 1; }
+add_cleanup rm -rf "$WL"
 mkdir -p "$WL/bin" "$WL/data" "$WL/out"
 # The user's own tool directory (not /tmp): where a real user's installed tools live.
-# Remember whether the parent directory is ours to remove: a `.local/share` that did not exist
-# before this run is not left behind (as root that would be /root/.local/share).
-[ -d "${HOME:?HOME must be set}/.local/share" ] || MADE_SHARE=1
+# A `.local/share` that did not exist before this run is not left behind (as root that would
+# be /root/.local/share). Registered before the tool directory, so it runs after that is gone.
+if [ ! -d "${HOME:?HOME must be set}/.local/share" ]; then
+    add_cleanup remove_empty_dirs "$HOME/.local/share" "$HOME/.local"
+fi
 mkdir -p "$HOME/.local/share"
 TOOLS="$(mktemp -d "$HOME/.local/share/edr-ml-workload.XXXXXX")" && [ -d "$TOOLS" ] \
-    || { echo "cannot create the tool directory under $HOME" >&2; rm -rf "$WL"; exit 1; }
+    || { echo "cannot create the tool directory under $HOME" >&2; exit 1; }
+add_cleanup rm -rf "$TOOLS"
 RANDOM="$SEED"
 PORT="${PORT:-18080}"
-
-HTTP_PID=""
-cleanup() {
-    [ -n "$HTTP_PID" ] && kill "$HTTP_PID" 2>/dev/null
-    rm -rf "$WL" "$TOOLS"
-    if [ "${MADE_SHARE:-0}" = 1 ]; then rmdir "$HOME/.local/share" "$HOME/.local" 2>/dev/null || true; fi
-}
-trap cleanup EXIT
 
 now_ns() { date +%s%N; }
 
@@ -78,7 +76,7 @@ fi
 # A local web server to be a network peer.
 if command -v python3 >/dev/null 2>&1; then
     (cd "$WL/data" && exec python3 -m http.server "$PORT" --bind 127.0.0.1 >/dev/null 2>&1) &
-    HTTP_PID=$!
+    add_cleanup kill_process "$!"
     sleep 1
 fi
 
