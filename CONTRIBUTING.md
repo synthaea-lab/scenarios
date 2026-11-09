@@ -60,6 +60,16 @@ string: moving it to a `.py` file would change the argv the agent sees. Tag ever
 `PY`. CI compiles and lints that code with `tools/check-python-snippets.py`; run it locally with
 `python3 tools/check-python-snippets.py --ruff ruff`.
 
+### Compiled stimuli
+
+`scenarios/*.c` and `scenarios/*.rs` are single-file programs built by hand on a test machine
+(see `scenarios/README.md`). CI checks that they still compile, with warnings as errors:
+
+```sh
+gcc -fsyntax-only -Wall -Wextra -Werror -pthread scenarios/pending-syscall-exit-exec.c
+rustc --edition 2021 --crate-type bin --emit=metadata -D warnings --out-dir "$(mktemp -d)" scenarios/v652-beacon.rs
+```
+
 ### PowerShell scenarios
 
 Windows scenarios must run on a stock Windows PowerShell 5.1 under any locale. Dot-source
