@@ -50,6 +50,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "common.ps1")
+Set-StrictMode -Version Latest
 
 $JobName = "synthaea284"
 $Source = "$env:SystemRoot\System32\whoami.exe"
@@ -184,12 +185,13 @@ function Show-BitsLogRecords([datetime]$Since) {
     Start-Sleep -Seconds 1
     $records = @(Get-WinEvent -LogName "Microsoft-Windows-Bits-Client/Operational" -ErrorAction SilentlyContinue |
         Where-Object { $_.TimeCreated -ge $Since -and $_.Id -in 4, 5, 16403, 61 } |
-        Where-Object { ([xml]$_.ToXml()).Event.EventData.Data | Where-Object { $_.'#text' -like "$JobName*" } })
+        Where-Object { ([xml]$_.ToXml()).Event.EventData.Data | Where-Object { $_.InnerText -like "$JobName*" } })
     Write-Host ""
     Write-Host "Bits-Client records for ${JobName}*: $($records.Count)"
     foreach ($record in ($records | Sort-Object TimeCreated)) {
         $data = @{}
-        ([xml]$record.ToXml()).Event.EventData.Data | ForEach-Object { $data[$_.Name] = $_.'#text' }
+        # InnerText, not '#text': an empty <Data/> has no '#text' and strict mode throws.
+        ([xml]$record.ToXml()).Event.EventData.Data | ForEach-Object { $data[$_.Name] = $_.InnerText }
         Write-Host ("  EID {0,-5} {1,-14} processId={2} {3} {4}" -f $record.Id, $data["jobTitle"], $data["processId"], $data["RemoteName"], $data["LocalName"])
     }
     if (@($records | Where-Object { $_.Id -eq 16403 }).Count -eq 0) {

@@ -8,6 +8,7 @@
         pwsh -NoProfile -File tools/test-common-ps1.ps1
 #>
 $ErrorActionPreference = "Stop"
+Set-StrictMode -Version Latest
 $repo = Split-Path -Parent $PSScriptRoot
 . (Join-Path $repo "scenarios/common.ps1")
 $failures = 0
@@ -70,6 +71,13 @@ try {
     Assert-That "Start-ScenarioAgent refuses a missing agent.exe" ($message -like "agent.exe not found at $missingExe*") "got '$message'"
     Assert-That "Start-ScenarioAgent creates nothing before its checks pass" (-not (Test-Path $runDir))
 
+    $exec = '{"type":"exec","meta":{"pid":7,"comm":"hostname.exe","container":{"id":"silo:220"}}}' | ConvertFrom-Json
+    $hostExec = '{"type":"exec","meta":{"pid":8,"comm":"hostname.exe"}}' | ConvertFrom-Json
+    $container = Get-OptionalProperty $exec.meta "container"
+    Assert-That "Get-OptionalProperty reads a present property" ((Get-OptionalProperty $container "id") -eq "silo:220")
+    Assert-That "Get-OptionalProperty is null for an omitted property" ($null -eq (Get-OptionalProperty $hostExec.meta "container"))
+    Assert-That "Get-OptionalProperty is null on a null object" ($null -eq (Get-OptionalProperty $null "id"))
+
     $threw = $false
     try { Stop-ScenarioAgent $null } catch { $threw = $true }
     Assert-That "Stop-ScenarioAgent without an agent is a no-op" (-not $threw)
@@ -84,6 +92,17 @@ foreach ($script in $scripts) {
     $errors = $null
     [void][System.Management.Automation.Language.Parser]::ParseFile((Join-Path $repo $script), [ref]$null, [ref]$errors)
     Assert-That "$script parses" (@($errors).Count -eq 0) (($errors | ForEach-Object { "line $($_.Extent.StartLineNumber): $($_.Message)" }) -join "; ")
+}
+
+# Every scenario declares its parameters (so a typo in a switch fails instead of
+# being ignored) and runs under strict mode. common.ps1 is dot-sourced: it
+# inherits the caller's.
+foreach ($script in ($scripts | Where-Object { $_ -like "scenarios/*.ps1" -and $_ -ne "scenarios/common.ps1" })) {
+    $ast = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $repo $script), [ref]$null, [ref]$null)
+    $binding = $ast.ParamBlock -and @($ast.ParamBlock.Attributes | Where-Object { $_.TypeName.Name -eq "CmdletBinding" }).Count -eq 1
+    Assert-That "$script has a [CmdletBinding()] param block" $binding
+    $strict = @($ast.EndBlock.Statements | Where-Object { $_.Extent.Text -eq "Set-StrictMode -Version Latest" }).Count -eq 1
+    Assert-That "$script sets Set-StrictMode -Version Latest at top level" $strict
 }
 
 if ($failures) {

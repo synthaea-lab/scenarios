@@ -51,11 +51,16 @@
 .LINK
     ATT&CK T1543.003 -- https://attack.mitre.org/techniques/T1543/003/
 #>
+[CmdletBinding()]
+param(
+    # The rig's catalog (runner/scenarios-windows.conf) expects 3 alerts: keep the default.
+    [ValidateRange(1, 100)][int]$Iterations = 3
+)
 
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "common.ps1")
+Set-StrictMode -Version Latest
 
-$Iterations = 3
 $ServiceNamePrefix = "SynthaeaDemoSvc"
 # notepad.exe: a benign, always-present Windows binary. With `start= demand`
 # the service never auto-starts, and it is deleted before anything ever

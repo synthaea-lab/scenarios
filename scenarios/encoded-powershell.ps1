@@ -42,11 +42,16 @@
 .LINK
     ATT&CK T1059.001 -- https://attack.mitre.org/techniques/T1059/001/
 #>
+[CmdletBinding()]
+param(
+    # The rig's catalog (runner/scenarios-windows.conf) expects 3 alerts: keep the default.
+    [ValidateRange(1, 100)][int]$Iterations = 3
+)
 
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "common.ps1")
+Set-StrictMode -Version Latest
 
-$Iterations = 3
 # "Write-Host hello" as UTF-16LE base64, the encoding -EncodedCommand expects.
 # The first cut used UTF-8 base64, which decodes to garbage and failed every
 # run unnoticed: the alert only reads the cmdline, and the exit code was never
