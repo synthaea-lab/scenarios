@@ -32,6 +32,8 @@ jobs:
         run: bash tools/test-preconditions.sh
       - name: fake web server helper
         run: bash tools/test-fake-webserver.sh
+      - name: EXPECT mode and self-check verdict helpers
+        run: bash tools/test-self-check.sh
 
   powershell-ascii:
     runs-on: ubuntu-latest

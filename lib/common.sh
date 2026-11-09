@@ -108,3 +108,39 @@ make_fake_webserver() {
         cp "$sh" "$1"
     fi
 }
+
+# Self-checking response scenarios (response, ransomware-reflex). They run once
+# against an agent started with the response enabled and once against one started
+# without it, and EXPECT says which, so the script knows what its own side should
+# look like afterwards.
+#
+# require_expect_mode — validate EXPECT (enforce or observe) and leave it set.
+# Unset or empty stops the script with bash's own `:?` error (exit 1); any other
+# value exits 2.
+require_expect_mode() {
+    EXPECT="${EXPECT:?set EXPECT=enforce or EXPECT=observe to match how the agent was started}"
+    case "$EXPECT" in
+        enforce | observe) ;;
+        *) echo "EXPECT must be enforce or observe" >&2; exit 2 ;;
+    esac
+}
+
+# Self-check verdict. Each failed check is reported as it is found and every check
+# still runs, so one run shows them all; exit_with_checks then turns them into the
+# exit status. The FAIL token is what the rig runner quotes from a scenario's log.
+_check_failed=0
+
+# check_fail MESSAGE — report one failed self-check.
+check_fail() {
+    echo "FAIL: $*" >&2
+    _check_failed=1
+}
+
+# exit_with_checks OK_MESSAGE — print OK_MESSAGE and exit 0 if no check failed,
+# otherwise exit 1.
+exit_with_checks() {
+    if [ "$_check_failed" -eq 0 ]; then
+        echo "$1"
+    fi
+    exit "$_check_failed"
+}
