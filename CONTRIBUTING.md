@@ -41,6 +41,8 @@ Source the shared helpers instead of re-implementing them:
   Do not set your own `trap ... EXIT`, which would replace them.
 - `start_loopback_listener BODY [ARG...]` runs a listener in its own process group and registers
   its teardown.
+- `make_fake_webserver PATH [SH]` copies a shell to `PATH` under a web server's name; the
+  scenario then spawns from that copy itself, so the parent and arguments stay its own.
 - `require_root`, `require_command`, `require_web_server` and `die_precondition` stop the
   scenario with exit code 2 when the host is not set up for it. Use exit code 1 only for a
   self-check that ran and failed.
@@ -89,6 +91,7 @@ Run these from the repository root before opening a pull request. They need Bash
 git ls-files -z '*.sh' | xargs -0 -n 1 bash -n
 git ls-files -z '*.sh' | xargs -0 shellcheck --severity=warning
 bash tools/test-preconditions.sh
+bash tools/test-fake-webserver.sh
 python3 tools/check-ps1-ascii.py
 pwsh -NoProfile -File tools/test-common-ps1.ps1
 python3 tools/check-sidecar-bytes.py
@@ -98,6 +101,7 @@ python3 tools/check-sidecar-bytes.py
 | --- | --- |
 | `bash -n`, ShellCheck | Every shell script parses and has no warning-level findings |
 | `test-preconditions.sh` | The precondition helpers, and that scenarios which cannot run on this host exit with code 2 |
+| `test-fake-webserver.sh` | `make_fake_webserver` copies the right shell and the copy runs the spawn command |
 | `check-ps1-ascii.py` | Every PowerShell script is ASCII-only |
 | `test-common-ps1.ps1` | Every PowerShell script parses, and the agent harness writes the expected lab configuration |
 | `check-sidecar-bytes.py` | Every sidecar matches `scenarios/sidecars.sha256` |

@@ -26,7 +26,7 @@ security product on that machine to react.
 | [`scenarios/`](scenarios/README.md) | The catalog: one script per technique (`*.sh` for Linux, `*.ps1` for Windows), and for each Linux script a `*.yaml` sidecar listing the detections it must trigger |
 | [`ml-capture/`](ml-capture/README.md) | Workloads for recording the benign and malicious captures the ML models are trained and evaluated on |
 | `lib/common.sh` | Helpers shared by the shell scenarios: cleanup on exit, loopback listeners, precondition checks |
-| `tools/` | Repository checks, run locally and in CI |
+| `tools/` | Repository checks, described in [CONTRIBUTING.md](CONTRIBUTING.md#checks) |
 
 The [scenario catalog](scenarios/README.md) lists every scenario, what it simulates, what it must
 trigger and what it needs on the host.
@@ -43,13 +43,15 @@ expected and what fired. It is the intended way to run this catalog:
 mkdir synthaea && cd synthaea
 for r in agent rules scenarios rig; do git clone https://github.com/synthaea-lab/$r.git; done
 cd rig
-python rig.py up debian12
-python rig.py build debian12
-python rig.py run debian12
-python rig.py report debian12
+python3 rig.py up debian12
+python3 rig.py build debian12 --ort-compat   # Debian 12 needs the ONNX Runtime compatibility build
+python3 rig.py run debian12
+python3 rig.py report debian12
 ```
 
-The rig's README covers host setup, the machine list and the scenarios that need extra setup.
+On Windows, clone the same four repositories into one directory and run the same `rig.py`
+commands with `python` from an elevated PowerShell. The rig's README covers host setup on Linux,
+Windows and macOS, the machine list and the scenarios that need extra setup.
 
 ### By hand
 

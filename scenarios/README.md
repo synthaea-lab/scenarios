@@ -104,7 +104,7 @@ powershell -ExecutionPolicy Bypass -File scenarios\bits-job.ps1 -AgentExe ..\age
 | --- | --- |
 | `response-marker.yar` | The YARA rule `response.sh` needs installed in the agent's content directory |
 | `pending-syscall-exit-exec.c` | A negative check for the Linux syscall-exit probes: a thread `execve`s while the leader is blocked in `accept(2)`, which must not produce a `SocketAccept` event for that pid |
-| `v652-beacon.rs` | A standalone beacon binary for the rig's kill-gate validation, run as a systemd service from a trusted path; build it with `rustc -O` |
+| `v652-beacon.rs` | A compiled beacon for testing the kill policy on a service binary under a trusted path, run as a systemd unit; build it with `rustc -O` |
 | `sidecars.sha256` | The hash of every sidecar, checked by `tools/check-sidecar-bytes.py` |
 
 To run the syscall-exit check on a Linux test machine with the agent capturing events:
