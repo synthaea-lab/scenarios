@@ -28,6 +28,14 @@
 # Hyper-V lab), so the `sh -c` here begins with `sleep 0.2` to hold the process open
 # well past the drain — this scenario measures capture fidelity, not the race.
 #
+# Known wrong count, frozen with the sidecar until the next retrain (#207): the
+# `base64 -d` child of each `sh -c` matches check_base64_decode as well (its argv is
+# `base64 -d`). It exits within ~1 ms, so whether it wins the drain race decides
+# between 3 and 6 alerts: the rig's debian12 run of 2026-11-08 counted 6, the
+# `base64 -d` children being pids 6503/6508/6513. Not a double report: two processes
+# each carry the decode. The fix for the retrain keeps `base64 -d` blocked on its
+# stdin past the drain (`(sleep 0.2; echo ...) | base64 -d`) and expects 6.
+#
 # Scope: this asserts *capture fidelity* for a cooperative process, not tamper
 # resistance. `/proc/<pid>/cmdline` is read at drain time, not at execve, so a process
 # that rewrites its own argv region before the read can spoof what a cmdline-substring
