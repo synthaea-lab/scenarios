@@ -14,8 +14,10 @@
 # Usage:
 #   1) terminal A: sudo target/release/agent run
 #   2) terminal B: ./scenarios/argv.sh
-#   3) expected: exactly one alert per iteration —
+#   3) expected: exactly two alerts per iteration, one per process whose argv holds the
+#      decode —
 #        T1059.004 — pid=<sh> comm=sh: command line contains a base64 decode: sh -c ...
+#        T1059.004 — pid=<base64> comm=base64: command line contains a base64 decode: base64 -d
 #      No alert means argv/cmdline capture is broken on this kernel ($(uname -r)).
 #
 # Also eyeball the raw exec events (agent run --print-events): every `sh -c` event
@@ -27,6 +29,10 @@
 # pipeline is gone in ~1-2 ms and loses that race under load (observed on 6.1 in the
 # Hyper-V lab), so the `sh -c` here begins with `sleep 0.2` to hold the process open
 # well past the drain — this scenario measures capture fidelity, not the race.
+# The `base64 -d` child matches the rule as well, and it used to exit within ~1 ms:
+# whether it won the race decided between 3 and 6 alerts (#207). The `sleep 0.2`
+# ahead of the `echo`, in the pipeline's left side, keeps it blocked on its stdin
+# past the drain too, so both processes are always counted.
 #
 # Scope: this asserts *capture fidelity* for a cooperative process, not tamper
 # resistance. `/proc/<pid>/cmdline` is read at drain time, not at execve, so a process
@@ -41,11 +47,11 @@ PAYLOAD='ZWNobyBoZWxsbwo='  # "echo hello\n"
 
 echo "Running $ITERATIONS shell invocations with a base64 decode in argv..."
 for i in $(seq 1 "$ITERATIONS"); do
-    sh -c "sleep 0.2; echo $PAYLOAD | base64 -d >/dev/null"
+    sh -c "sleep 0.2; (sleep 0.2; echo $PAYLOAD) | base64 -d >/dev/null"
     echo "  iteration $i done"
     sleep 1
 done
 
-echo "Done. Check the agent terminal: one T1059.004 alert per iteration means argv/"
+echo "Done. Check the agent terminal: two T1059.004 alerts per iteration means argv/"
 echo "cmdline capture is correct on this kernel ($(uname -r)); no alerts means #152"
 echo "has regressed (the /proc/<pid>/cmdline read returned nothing)."

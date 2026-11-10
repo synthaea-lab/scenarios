@@ -8,7 +8,7 @@ simulates: >
 expected_detections:
   - technique: "T1059.004"
     rule: check_base64_decode   # crates/rules/src/stateless.rs — stateless, cmdline substring
-    min_count: 3   # ITERATIONS=3 in the script, one alert per iteration, no windowed dedup
+    min_count: 6   # ITERATIONS=3 in the script, two alerts per iteration (sh and base64), no windowed dedup
     tolerance: 0
 notes: >
   Tests capture fidelity for a cooperative process, not tamper resistance: cmdline is
@@ -19,7 +19,14 @@ notes: >
   lose the userspace drain race under load (observed on kernel 6.1 in the Hyper-V lab)
   — that race is a known, accepted gap, not what this scenario measures.
 
-  Confirmed on real hardware 2026-09-09/10 (Hyper-V lab, Ubuntu 22.04/5.15.0-91 and
+  Two alerts per iteration (#207): the `sh -c` and its `base64 -d` child both carry
+  the decode in their argv. Until 2026-11 the script piped `echo` straight into
+  `base64 -d`, which exited within ~1 ms; it mostly lost the drain race, so 3 was the
+  usual count, and the rig's debian12 run of 2026-11-08 counted 6 (pids 6503/6508/6513
+  were the `base64 -d` children). The pipeline's left side now sleeps 0.2 s before the
+  `echo`, so `base64 -d` waits on its stdin past the drain and is always counted.
+
+  Earlier history (single-alert expectation): confirmed on real hardware 2026-09-09/10 (Hyper-V lab, Ubuntu 22.04/5.15.0-91 and
   Debian 12/6.1.0-17, PR #155): 3/3 T1059.004 alerts on both kernels, full argv
   captured from /proc/<pid>/cmdline every time, never empty. min_count: 3 above
   matches that result.
