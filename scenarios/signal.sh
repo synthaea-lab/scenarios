@@ -73,6 +73,13 @@ state_file() {
 count_signal_events() { grep -c '"type":"signal"' "$EVENTS" || true; }
 count_tamper_alerts() { grep -c '"technique":"T1562.001"' "$ALERTS" || true; }
 
+# count_signal_events_to PID... — the Signal events whose target is one of PIDs.
+count_signal_events_to() {
+    local targets
+    targets=$(IFS='|'; echo "$*")
+    grep '"type":"signal"' "$EVENTS" | grep -cE "\"target_pid\":($targets)[,}]" || true
+}
+
 # Runs a command as `nobody`, so a signal to the (root) agent fails with EPERM.
 as_nobody() {
     if command -v setpriv >/dev/null; then
@@ -134,8 +141,11 @@ run_live() {
     echo "1) Unrelated signal traffic (must stay invisible)"
     sleep 300 & local a=$!
     sleep 300 & local b=$!
+    # Count only the events aimed at the two sleeps: the kill -0 liveness probe in
+    # running_agent_pid_or_exit is a real signal to the agent, and its event can land
+    # up to ~170 ms later, after a whole-file count would have been taken (#26).
     local before
-    before=$(count_signal_events)
+    before=$(count_signal_events_to "$a" "$b")
     for _ in $(seq 1 20); do
         kill -0 "$a"
         kill -STOP "$b"
@@ -144,7 +154,7 @@ run_live() {
     kill -TERM "$a" "$b"
     wait "$a" "$b" 2>/dev/null || true
     sleep "$FLUSH_WAIT"
-    expect_equal "Signal events from 62 unrelated signals" 0 $(($(count_signal_events) - before))
+    expect_equal "Signal events from 62 unrelated signals" 0 $(($(count_signal_events_to "$a" "$b") - before))
 
     echo "2) Existence probe to the agent (event, no alert)"
     before=$(count_signal_events)

@@ -3,8 +3,8 @@
 # missing EVENTS/ALERTS file stops every mode that needs them with exit 2 before it
 # signals anything, and a failed check prints its FAIL line, the failure count and
 # exits 1. Runs unprivileged; `live` itself needs root and a running agent, so only
-# its preconditions are exercised here. Takes about 30 s (`verify-kill` waits 30 s
-# for an alert that never comes).
+# its preconditions and its step-1 count are exercised here. Takes about 40 s
+# (`verify-kill` waits 30 s for an alert that never comes, `live` 9 s for flushes).
 #
 #   tools/test-signal-checks.sh
 
@@ -90,6 +90,17 @@ else
     fail "the stand-in agent was killed by a failed precondition"
 fi
 [ ! -e "$runtime/$STATE_NAME" ] || fail "kill with a missing file recorded a sender"
+
+# --- the agent's late liveness-probe event (#26) ---------------------------------------
+
+# live probes the agent with kill -0 before step 1 takes its starting count, and the
+# agent writes that event up to ~170 ms later. Stand in for it with a Signal event to
+# the agent appended a second into step 1: it must not count as unrelated traffic.
+( sleep 1; echo "{\"type\":\"signal\",\"signal\":0,\"target_pid\":$fake_agent}" >> "$work/events.jsonl" ) &
+late_probe=$!
+out=$(run_signal live AGENT_PID="$fake_agent" 2>&1)
+wait "$late_probe"
+expect_output_has "  PASS  Signal events from 62 unrelated signals (0)" "$out"     "live does not count the agent's late probe event as unrelated traffic"
 
 # --- a failed check -----------------------------------------------------------------
 
