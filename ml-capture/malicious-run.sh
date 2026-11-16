@@ -7,7 +7,8 @@
 #   terminal A:  agent capture-events --output events-malicious.jsonl     (as root)
 #   terminal B:  sudo ./malicious-run.sh <out-dir>
 #
-# <out-dir>/run.json gets the runner's pid and the window of the run in ns since the epoch:
+# <out-dir>/run.json gets the runner's pid and the window of the run in ns since the epoch, and
+# each scenario's own pid and window (the case labeller, ml#3, attributes a case by them):
 #   python -m synthaea_ml.evaluation.t1_lineage_gain ... --root-pid <pid> --start-ns .. --end-ns ..
 # The runner is this script's own process: every scenario is its descendant. Anything else the
 # capture saw in the window (the agent, ssh, cron) is not counted as an attack.
@@ -43,9 +44,13 @@ command -v cc >/dev/null 2>&1 && SCENARIOS+=(ld-preload-hijack)
 # sidecar: they exist for this capture.
 SCENARIOS+=(odd-parents/webapp-spawns-shell odd-parents/office-spawns-shell odd-parents/dropped-binary-spawns-children)
 
+# One line per scenario that started: name, pid, window, exit code (see write_run_json).
+SCENARIOS_TSV="$OUT/scenarios.tsv"
+: > "$SCENARIOS_TSV"
+PID_FILE="$OUT/.scenario.pid"
+
 START_NS="$(date +%s%N)"
-RAN=()
-FAILED=()
+RAN_COUNT=0
 for name in "${SCENARIOS[@]}"; do
     case "$name" in
         odd-parents/*) script="$ODD_DIR/${name#odd-parents/}.sh" ;;
@@ -54,20 +59,29 @@ for name in "${SCENARIOS[@]}"; do
     log="$OUT/${name//\//-}.log"
     [ -x "$script" ] || { echo "skip $name: $script not executable" >&2; continue; }
     echo "== $name"
-    if timeout "$TIMEOUT" "$script" > "$log" 2>&1; then
-        RAN+=("$name")
+    scenario_start="$(date +%s%N)"
+    # The subshell writes its own pid, then exec turns it into `timeout`, so that pid is the
+    # root of this scenario's process tree. It stays in the foreground: a background job would
+    # get /dev/null as stdin, which the scenarios were never run with.
+    ( echo "$BASHPID" > "$PID_FILE"; exec timeout "$TIMEOUT" "$script" ) > "$log" 2>&1
+    rc=$?
+    scenario_end="$(date +%s%N)"
+    printf '%s\t%s\t%s\t%s\t%s\n' "$name" "$(<"$PID_FILE")" "$scenario_start" "$scenario_end" "$rc" \
+        >> "$SCENARIOS_TSV"
+    if [ "$rc" -eq 0 ]; then
+        RAN_COUNT=$((RAN_COUNT + 1))
     else
-        echo "   exit $? (log: $log)" >&2
-        FAILED+=("$name")
+        echo "   exit $rc (log: $log)" >&2
     fi
     sleep "$GAP"
 done
 END_NS="$(date +%s%N)"
+rm -f "$PID_FILE"
 
-write_run_json "$OUT/run.json" "$$" "$START_NS" "$END_NS" "${#RAN[@]}" "${RAN[@]}" "${FAILED[@]}" \
+write_run_json "$OUT/run.json" "$$" "$START_NS" "$END_NS" "$SCENARIOS_TSV" \
     || { echo "cannot write $OUT/run.json" >&2; exit 1; }
 cat "$OUT/run.json"
 
 # A run in which nothing ran is not a capture of malicious behavior: say so, so a script
 # driving this does not go on to label an empty window.
-[ "${#RAN[@]}" -gt 0 ] || { echo "no scenario ran (see the skips and failures above)" >&2; exit 1; }
+[ "$RAN_COUNT" -gt 0 ] || { echo "no scenario ran (see the skips and failures above)" >&2; exit 1; }
