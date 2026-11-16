@@ -79,7 +79,12 @@ The run writes `<out-dir>/run.json`, then prints it, through `write_run_json` in
   "start_ns": 1762700000000000000,
   "end_ns": 1762700300000000000,
   "ran": ["beacon", "odd-parents/webapp-spawns-shell"],
-  "failed": ["ld-preload-hijack"]
+  "failed": ["ld-preload-hijack"],
+  "scenarios": [
+    {"name": "beacon", "pid": 12346, "start_ns": 1762700000100000000, "end_ns": 1762700020000000000, "exit_code": 0},
+    {"name": "ld-preload-hijack", "pid": 12398, "start_ns": 1762700028000000000, "end_ns": 1762700031000000000, "exit_code": 1},
+    {"name": "odd-parents/webapp-spawns-shell", "pid": 12450, "start_ns": 1762700039000000000, "end_ns": 1762700050000000000, "exit_code": 0}
+  ]
 }
 ```
 
@@ -89,9 +94,12 @@ The run writes `<out-dir>/run.json`, then prints it, through `write_run_json` in
 | `start_ns`, `end_ns` | The run's window, in nanoseconds since the epoch |
 | `ran` | Scenarios that exited 0 |
 | `failed` | Scenarios that exited non-zero or timed out |
+| `scenarios` | One entry per scenario that started, in run order. `pid` is the root of that scenario's process tree (the `timeout` it runs under), `start_ns`/`end_ns` its own window, `exit_code` its exit status (124 is a timeout). The case labeller (ml#3) attributes a case to the scenario whose tree its process descends from, then checks its techniques against that scenario's sidecar |
 
-The JSON is produced by Python's `json` module, so any scenario name is a valid string, and a
-non-numeric pid or timestamp is an error rather than a broken file. `write_run_json` is called
+`malicious-run.sh` also leaves `scenarios.tsv` in the out-dir, the same entries one per line; it is
+what `write_run_json` reads. The JSON is produced by Python's `json` module, so any scenario name is
+a valid string, and a non-numeric pid, timestamp or exit code, or a scenario window outside the
+run's, is an error rather than a broken file. `write_run_json` is called
 after `end_ns` is taken, so its own `python3` falls outside the window. Check `failed` before
 using a run.
 
