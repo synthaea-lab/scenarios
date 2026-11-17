@@ -45,10 +45,10 @@ start_loopback_listener '
 ' "$FIFO" "$PORT"
 
 sleep 1
-echo "Bind shell listening on 127.0.0.1:$PORT; holding ${LISTEN_HOLD}s for the agent's listener poll..."
+say "Bind shell listening on 127.0.0.1:$PORT; holding ${LISTEN_HOLD}s for the agent's listener poll..."
 sleep "$LISTEN_HOLD"
 
-echo "Connecting and running 'id' through the shell..."
+say "Connecting and running 'id' through the shell..."
 REPLY="$(printf 'id\nexit\n' | nc -w3 127.0.0.1 "$PORT" 2>/dev/null || true)"
 if ! grep -q 'uid=' <<<"$REPLY"; then
     # Fail loudly: a scenario that "succeeds" without a working shell behind the
@@ -56,6 +56,6 @@ if ! grep -q 'uid=' <<<"$REPLY"; then
     echo "FAIL: no shell answered on 127.0.0.1:$PORT (reply: ${REPLY:-<empty>})" >&2
     exit 1
 fi
-echo "  shell answered: $(grep -o 'uid=[^ ]*' <<<"$REPLY")"
+say "  shell answered: $(grep -o 'uid=[^ ]*' <<<"$REPLY")"
 
-echo "Done. Check for the T1571 alert in the agent terminal."
+done_msg "the T1571 alert"

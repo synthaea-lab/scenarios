@@ -38,8 +38,8 @@ start_loopback_listener '
 
 sleep 1
 
-echo "curl -o $OUT_FILE http://127.0.0.1:$PORT/ (exec + connect + filewrite, same pid)..."
+say "curl -o $OUT_FILE http://127.0.0.1:$PORT/ (exec + connect + filewrite, same pid)..."
 curl -s -o "$OUT_FILE" "http://127.0.0.1:$PORT/" || true
 
-echo "Done. Check for the T1105/T1059/T1071 (full dropper chain) alert in the agent terminal."
-echo "File written: $OUT_FILE ($( [ -f "$OUT_FILE" ] && wc -c < "$OUT_FILE" || echo 0) bytes)"
+say "File written: $OUT_FILE ($( [ -f "$OUT_FILE" ] && wc -c < "$OUT_FILE" || echo 0) bytes)"
+done_msg "the T1105/T1059/T1071 (full dropper chain) alert"

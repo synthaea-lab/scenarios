@@ -40,11 +40,12 @@ start_loopback_listener '
 
 sleep 1
 
-echo "Sending $RESPAWNS connections to 127.0.0.1:$PORT (listener respawns each time)..."
+say "Sending $RESPAWNS connections to 127.0.0.1:$PORT (listener respawns each time)..."
 for i in $(seq 1 "$RESPAWNS"); do
     echo "ping $i" | nc -w1 127.0.0.1 "$PORT" || true
-    echo "  connection $i sent (the listener should have respawned with a new pid)"
+    say "  connection $i sent (the listener should have respawned with a new pid)"
     sleep 1
 done
 
-echo "Done. Check in the agent terminal whether the respawn-with-beaconing alert is present or absent."
+done_msg "the T1071/T1041 beacon alert and the T1059/T1071 respawn-with-beaconing alert" \
+    "(respawn-beacon.yaml's notes say why the latter fires)"

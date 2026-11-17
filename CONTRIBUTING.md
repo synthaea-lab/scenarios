@@ -51,6 +51,9 @@ Source the shared helpers instead of re-implementing them:
 - `require_root`, `require_command`, `require_web_server` and `die_precondition` stop the
   scenario with exit code 2 when the host is not set up for it. Use exit code 1 only for a
   self-check that ran and failed.
+- `say MESSAGE...` prints a progress line, and `done_msg EXPECTATION...` the end-of-run trailer
+  (`Done. Expect in the agent's alerts: EXPECTATION.`). Do not print a `Done.` line of your own
+  (`tools/test-output.sh` fails on one).
 
 The process tree, names, arguments and paths of a scenario are the behavior under test: do not
 add wrapper shells or subshells around the commands that matter.
@@ -113,6 +116,7 @@ git ls-files -z '*.sh' | xargs -0 shellcheck --severity=warning
 bash tools/test-preconditions.sh
 bash tools/test-fake-webserver.sh
 bash tools/test-workdir.sh
+bash tools/test-output.sh
 python3 tools/check-ps1-ascii.py
 pwsh -NoProfile -File tools/test-common-ps1.ps1
 python3 tools/check-sidecar-bytes.py

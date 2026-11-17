@@ -38,14 +38,14 @@ MODE="${1:-single}"
 make_workdir DIR "$HOME" synthaea-scenario-ransomware-
 COUNT=22 # a couple past RANSOMWARE_RENAME_THRESHOLD (20) for timing margin
 
-echo "Creating $COUNT throwaway files in $DIR..."
+say "Creating $COUNT throwaway files in $DIR..."
 create_throwaway_files "$DIR" "$COUNT" 'file%d.docx'
 
 case "$MODE" in
 single)
     # One process for every rename — like a real encryptor's single binary. Caught by
     # the per-pid counter.
-    echo "[single] Renaming all $COUNT files, appending .locked, from one process..."
+    say "[single] Renaming all $COUNT files, appending .locked, from one process..."
     python3 - "$DIR" "$COUNT" <<'PY'
 import os, sys
 d, n = sys.argv[1], int(sys.argv[2])
@@ -59,7 +59,7 @@ loop)
     # never climbs — but every child shares this script's shell as ppid, which the
     # per-ppid counter catches. This is a real Linux ransomware shape, not just a lab
     # artifact (issue #262 review).
-    echo "[loop] Renaming all $COUNT files, appending .locked, one mv per file..."
+    say "[loop] Renaming all $COUNT files, appending .locked, one mv per file..."
     for i in $(seq 0 $((COUNT - 1))); do
         mv "$DIR/file${i}.docx" "$DIR/file${i}.docx.locked"
     done
@@ -70,4 +70,4 @@ loop)
     ;;
 esac
 
-echo "Done. Check the agent terminal for the T1486 alert."
+done_msg "the T1486 alert"

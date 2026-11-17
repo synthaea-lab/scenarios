@@ -22,6 +22,7 @@ bash tools/test-preconditions.sh
 bash tools/test-fake-webserver.sh
 bash tools/test-workdir.sh
 bash tools/test-self-check.sh
+bash tools/test-output.sh
 bash tools/test-run-json.sh
 bash tools/test-signal-state.sh
 bash tools/test-signal-checks.sh
@@ -56,6 +57,7 @@ Without `--ruff`, `check-python-snippets.py` only compiles the snippets.
 | [`test-fake-webserver.sh`](../tools/test-fake-webserver.sh) | `make_fake_webserver` copies the right binary (and `$BASH` for busybox), the copy runs the spawn command, and `spawn_shells_from` spawns from the calling shell |
 | [`test-workdir.sh`](../tools/test-workdir.sh) | `make_workdir` and `create_throwaway_files`, and that the unprivileged scenarios using them leave nothing behind |
 | [`test-self-check.sh`](../tools/test-self-check.sh) | `require_expect_mode`, `check_fail` and `exit_with_checks`, and how the self-checking scenarios treat a missing or wrong `EXPECT` |
+| [`test-output.sh`](../tools/test-output.sh) | `say` and `done_msg` print in the shared style, and no scenario prints its own `Done` trailer instead of calling `done_msg` |
 | [`test-run-json.sh`](../tools/test-run-json.sh) | `write_run_json` writes valid JSON for any scenario name (quotes, backslashes, slashes) and refuses a non-numeric pid, an empty timestamp, a bad `RAN_COUNT` or a missing argument |
 | [`test-signal-state.sh`](../tools/test-signal-state.sh) | `signal.sh kill` keeps its state file in the private runtime directory, never in `/tmp`, and `verify-kill` finds it. A `sleep` stands in for the agent; takes about 15 seconds |
 | [`test-signal-checks.sh`](../tools/test-signal-checks.sh) | `signal.sh` stops with exit 2 before signaling anything when the agent or its files are missing, and its verdict prints `FAIL` lines and exits 1. Takes about 30 seconds |

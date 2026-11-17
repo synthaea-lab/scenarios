@@ -52,10 +52,10 @@ static void mark_loaded(void) {
 }
 C
 
-echo "Compiling the benign preload library ($LIB, outside the linker trust set)..."
+say "Compiling the benign preload library ($LIB, outside the linker trust set)..."
 cc -fPIC -shared -o "$LIB" "$SRC"
 
-echo "Running 'sleep' with LD_PRELOAD=$LIB (untrusted path)..."
+say "Running 'sleep' with LD_PRELOAD=$LIB (untrusted path)..."
 # env_security (the captured LD_PRELOAD value) is read from /proc/<pid>/environ at
 # drain time, same path as the argv read — a short-lived process can exit before
 # the drain runs, leaving env_security empty and no alert (argv.sh hit this on 6.1
@@ -66,9 +66,9 @@ echo "Running 'sleep' with LD_PRELOAD=$LIB (untrusted path)..."
 LD_PRELOAD="$LIB" sleep 0.3
 
 if [ -f "$MARKER" ]; then
-    echo "Constructor ran (marker file present) — the preload actually loaded."
+    say "Constructor ran (marker file present) — the preload actually loaded."
 else
     echo "WARNING: marker file missing — the preload may not have loaded." >&2
 fi
 
-echo "Done. Check the agent terminal for the T1574.006 alert."
+done_msg "the T1574.006 alert"

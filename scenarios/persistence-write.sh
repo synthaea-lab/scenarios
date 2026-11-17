@@ -54,8 +54,8 @@ add_cleanup restore_profile
 # unwanted alert on Ubuntu/Debian (busybox touch uses utimensat instead, which is
 # why this didn't show up testing on Alpine). `>>` already creates the file if it's
 # missing, so touch was never needed (#431 review).
-echo "Appending a marker comment to $TARGET (a real write-intent open, never sourced as a command)..."
+say "Appending a marker comment to $TARGET (a real write-intent open, never sourced as a command)..."
 echo "$MARKER" >> "$TARGET"
 
-echo "Done. Check the agent terminal for two T1546.004 alerts: this append,"
-echo "and one more when cleanup restores the file on exit."
+done_msg "two T1546.004 alerts: this append, and one more when cleanup restores the file" \
+    "on exit"

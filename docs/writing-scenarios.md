@@ -46,7 +46,7 @@ Those are therefore part of what the scenario asserts, and shell conveniences ch
 
 ## Shell helpers: `lib/common.sh`
 
-Every Linux scenario except `argv.sh`, `dns-exfil.sh` and `signal.sh` sources the shared helpers:
+Every Linux scenario except `signal.sh` sources the shared helpers:
 
 ```sh
 . "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
@@ -125,6 +125,19 @@ self-check that ran and failed.
 
 A self-check verifies only the scenario's own side (was the process killed, is the file still
 there). Alert counts belong in the sidecar, judged by the consumer.
+
+### Output
+
+| Function | Use |
+| --- | --- |
+| `say MESSAGE...` | Print one progress line on stdout |
+| `done_msg EXPECTATION...` | Print the end-of-run trailer, `Done. Expect in the agent's alerts: EXPECTATION.`; `EXPECTATION` is a phrase without a final period, such as `the T1571 alert` |
+
+Both are `printf` builtins in the scenario's shell, so they add no process to its tree. A
+scenario that does not judge itself ends with `done_msg`, never with a `Done.` line of its own
+([`tools/test-output.sh`](../tools/test-output.sh) fails on one). Warnings and errors still go to
+stderr with `echo ... >&2`, and a self-check reports through `check_fail`: the `FAIL` and `ERROR`
+tokens are what the rig quotes from a failing scenario's log.
 
 ## Adding a Linux scenario
 

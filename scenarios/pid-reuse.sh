@@ -36,17 +36,19 @@ require_root "it writes /proc/sys/kernel/ns_last_pid"
 make_workdir DIR "$HOME" synthaea-scenario-pid-reuse-
 COUNT=22 # a couple past RANSOMWARE_RENAME_THRESHOLD (20) for timing margin
 
-echo "Creating $COUNT throwaway files in $DIR..."
+say "Creating $COUNT throwaway files in $DIR..."
 create_throwaway_files "$DIR" "$COUNT" 's%d.conf'
 
 case "$MODE" in
 real)
     # The legitimate shape: a real sed in-place edit with a backup suffix.
-    echo "[real] sed -i.bak over $COUNT files..."
+    say "[real] sed -i.bak over $COUNT files..."
+    EXPECTATION="no T1486 alert (a real sed keeps its in-place-edit exclusion)"
     sed -i.bak 's/^/#/' "$DIR"/s*.conf
     ;;
 recycled)
-    echo "[recycled] real sed first, then its pid recycled by a forked child..."
+    say "[recycled] real sed first, then its pid recycled by a forked child..."
+    EXPECTATION="one T1486 alert for the child with comm=sed on the recycled pid"
     python3 - "$DIR" "$COUNT" <<'PY'
 import ctypes
 import os
@@ -100,4 +102,4 @@ PY
     ;;
 esac
 
-echo "Done. Check the agent terminal."
+done_msg "$EXPECTATION"

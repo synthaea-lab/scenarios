@@ -29,11 +29,11 @@ start_loopback_listener '
 
 sleep 1
 
-echo "Sending $CONNECTIONS connections to 127.0.0.1:$PORT (${INTERVAL}s interval)..."
+say "Sending $CONNECTIONS connections to 127.0.0.1:$PORT (${INTERVAL}s interval)..."
 for i in $(seq 1 "$CONNECTIONS"); do
     echo "beacon $i" | nc -w1 127.0.0.1 "$PORT" || true
-    echo "  connection $i sent"
+    say "  connection $i sent"
     sleep "$INTERVAL"
 done
 
-echo "Done. Check for the T1071/T1041 alert in the agent terminal."
+done_msg "the T1071/T1041 alert"

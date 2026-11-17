@@ -44,16 +44,18 @@
 
 set -euo pipefail
 
+. "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
+
 ITERATIONS=3
 PAYLOAD='ZWNobyBoZWxsbwo='  # "echo hello\n"
 
-echo "Running $ITERATIONS shell invocations with a base64 decode in argv..."
+say "Running $ITERATIONS shell invocations with a base64 decode in argv..."
 for i in $(seq 1 "$ITERATIONS"); do
     sh -c "sleep 0.2; echo $PAYLOAD | base64 -d >/dev/null"
-    echo "  iteration $i done"
+    say "  iteration $i done"
     sleep 1
 done
 
-echo "Done. Check the agent terminal: one T1059.004 alert per iteration means argv/"
-echo "cmdline capture is correct on this kernel ($(uname -r)); no alerts means #152"
-echo "has regressed (the /proc/<pid>/cmdline read returned nothing)."
+done_msg "one T1059.004 alert per iteration, which means argv/cmdline capture is correct" \
+    "on this kernel ($(uname -r)); no alert means #152 has regressed (the" \
+    "/proc/<pid>/cmdline read returned nothing)"

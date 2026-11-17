@@ -128,6 +128,23 @@ require_web_server() {
     curl -s -o /dev/null --max-time 3 "$1/" || die_precondition "no web server answers at $1"
 }
 
+# Scenario output, on stdout, in one style for every scenario: progress lines while the
+# technique runs, then one trailer saying what the agent should have reported. Both are
+# printf builtins in the caller's shell, so they add no process to the scenario's tree.
+# Their text is free: the contract with the rig runner is only the FAIL and ERROR tokens
+# it quotes from a failing scenario's log, which check_fail and die_precondition print.
+#
+# say MESSAGE... — print one progress line.
+say() {
+    printf '%s\n' "$*"
+}
+
+# done_msg EXPECTATION... — print the end-of-run trailer. EXPECTATION is what the agent
+# should have reported, as a phrase without a final period ("the T1571 alert").
+done_msg() {
+    say "Done. Expect in the agent's alerts: $*."
+}
+
 # Fake web server: a copy of a real shell binary under a web server's name, so the
 # processes it runs have a parent whose comm (the file's basename) is "nginx" or the
 # like. Used by lineage, prevalence-lineage and web-webshell.
@@ -170,7 +187,7 @@ spawn_shells_from() {
     for i in $(seq 1 "$iterations"); do
         # FAKE (comm 'nginx' or the like) execs a child shell, which execs the leaf.
         "$fake" -c "$inner_cmd"
-        echo "  iteration $i done"
+        say "  iteration $i done"
         sleep 1
     done
 }

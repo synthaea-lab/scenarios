@@ -40,8 +40,8 @@ set -euo pipefail
 CLIENT=$(command -v mariadb || command -v mysql) || die_precondition "no mariadb/mysql client found"
 USER_NAME=${1:-edr_lab_victim}
 
-echo "Sending 6 failed logins as '$USER_NAME' (T1110 Brute Force)..."
+say "Sending 6 failed logins as '$USER_NAME' (T1110 Brute Force)..."
 for _ in 1 2 3 4 5 6; do
   "$CLIENT" -h127.0.0.1 -u"$USER_NAME" -pwrong-on-purpose -e 'select 1' >/dev/null 2>&1 || true
 done
-echo "done: check the agent's alerts file for T1110 on target=$USER_NAME"
+done_msg "the T1110 alert on target=$USER_NAME"
