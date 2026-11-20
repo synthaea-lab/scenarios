@@ -38,8 +38,7 @@ add_cleanup rm -rf "$DIR"
 
 make_fake_webserver "$FAKE_WEBSERVER"
 
-echo "TAG=$TAG: spawning $ITERATIONS shells from $FAKE_WEBSERVER..."
+say "TAG=$TAG: spawning $ITERATIONS shells from $FAKE_WEBSERVER..."
 spawn_shells_from "$FAKE_WEBSERVER" "$ITERATIONS"
 
-echo "Done. Expect $ITERATIONS T1059 alerts in the agent; the prevalence key is"
-echo "'$FAKE_WEBSERVER -> <shell image>'."
+done_msg "$ITERATIONS T1059 alerts, with the prevalence key '$FAKE_WEBSERVER -> <shell image>'"

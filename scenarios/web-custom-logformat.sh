@@ -31,11 +31,11 @@ BASE=${1:-http://127.0.0.1:8081}
 require_command curl
 require_web_server "$BASE"
 
-echo "Sending 20 requests to a vhost whose log is not in combined format ..."
+say "Sending 20 requests to a vhost whose log is not in combined format ..."
 for i in $(seq 1 20); do curl -s -o /dev/null "$BASE/page$i"; done
-echo "Waiting for the 60 s window to close ..."
+say "Waiting for the 60 s window to close ..."
 sleep 65
 # The window closes on the first poll after it expires; one more request makes sure there is one.
 curl -s -o /dev/null "$BASE/last"
 sleep 3
-echo "done: check the alerts file for LOG-SOURCE."
+done_msg "the LOG-SOURCE alert"

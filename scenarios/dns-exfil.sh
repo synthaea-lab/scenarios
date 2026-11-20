@@ -22,6 +22,8 @@
 
 set -euo pipefail
 
+. "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
+
 PARENT="${1:-tunnel.example.invalid}"   # .invalid: never resolves, never leaves the resolver
 QUERIES=16
 
@@ -66,4 +68,4 @@ for i in range(1, queries + 1):
     time.sleep(0.3)
 PY
 
-echo "Done. Check for the T1048.003/T1071.004 alert in the agent output."
+done_msg "the T1048.003/T1071.004 alert"

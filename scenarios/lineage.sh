@@ -51,8 +51,8 @@ ITERATIONS=3
 add_cleanup rm -f "$FAKE_WEBSERVER"
 make_fake_webserver "$FAKE_WEBSERVER"
 
-echo "Spawning $ITERATIONS shells from a process named 'nginx' ($FAKE_WEBSERVER)..."
+say "Spawning $ITERATIONS shells from a process named 'nginx' ($FAKE_WEBSERVER)..."
 spawn_shells_from "$FAKE_WEBSERVER" "$ITERATIONS"
 
-echo "Done. Check the agent terminal: one T1059 alert per iteration means lineage is"
-echo "correct on this kernel ($(uname -r)); no alerts means #53 has regressed."
+done_msg "one T1059 alert per iteration, which means lineage is correct on this kernel" \
+    "($(uname -r)); no alert means #53 has regressed"

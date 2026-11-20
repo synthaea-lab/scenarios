@@ -58,7 +58,7 @@ require_web_server "$BASE"
 
 add_cleanup rm -f "$FAKE_WEBSERVER"
 
-echo "Sending one request per signature to $BASE ..."
+say "Sending one request per signature to $BASE ..."
 # SQL injection marker in a parameter value
 curl -s -o /dev/null "$BASE/index.php?id=1%20union%20select%20username,password%20from%20users"
 # path traversal in a parameter value
@@ -73,18 +73,18 @@ curl -s -o /dev/null "$BASE/index.html"
 sleep 3
 
 make_fake_webserver "$FAKE_WEBSERVER"
-echo "Spawning a shell from a process named '$FAKE_COMM' ($FAKE_WEBSERVER) ..."
+say "Spawning a shell from a process named '$FAKE_COMM' ($FAKE_WEBSERVER) ..."
 # The subshell forces the fork that `sh -c` would otherwise skip (see lineage.sh).
 "$FAKE_WEBSERVER" -c '(/bin/sh -c "id >/dev/null")'
 
 # The webshell-like request comes AFTER the shell, within the correlator's 3 s grace (#807): a
 # shell is paired only with an access-log request read from the shell's time through 3 s after
 # it, and the access log line is written after the response, so it is read after the shell.
-echo "Sending the webshell-like request (within the 3 s grace after the shell) ..."
+say "Sending the webshell-like request (within the 3 s grace after the shell) ..."
 # a webshell-like request: a command in a parameter of a script under uploads/
 curl -s -o /dev/null "$BASE/uploads/c99.php?cmd=id"
 # Let the grace expire so that the alert has been decided before the script ends.
 sleep 4
 
-echo "done. Alerts file: T1505.003 naming the WebshellLike request, and T1059. Events file: four"
-echo "http_request events, one http_summary after about a minute."
+done_msg "T1505.003 naming the WebshellLike request, and T1059; in the events, four" \
+    "http_request events and one http_summary after about a minute"

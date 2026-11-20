@@ -35,10 +35,10 @@ LOGFILE=/var/log/synthaea-scenario-test.log
 cleanup() { [ -e "$LOGFILE" ] && rm -f "$LOGFILE"; true; }
 add_cleanup cleanup
 
-echo "Creating a throwaway log file ($LOGFILE)..."
+say "Creating a throwaway log file ($LOGFILE)..."
 echo "harmless test content, $(date -u +%FT%TZ)" > "$LOGFILE"
 
-echo "Deleting it (the anti-forensics move: T1070.002 Indicator Removal: Clear Logs)..."
+say "Deleting it (the anti-forensics move: T1070.002 Indicator Removal: Clear Logs)..."
 rm -f "$LOGFILE"
 
-echo "Done. Check the agent terminal for the T1070.002 alert."
+done_msg "the T1070.002 alert"
