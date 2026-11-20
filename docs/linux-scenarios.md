@@ -67,12 +67,14 @@ Shape decisions, all in [`lib/common.sh`](../lib/common.sh):
 
 Three `sh -c` one-liners containing `base64 -d`. `check_base64_decode` matches a substring of the
 command line, so it fires only if the agent captured the argument vector. Each iteration has two
-matching processes, the `sh -c` and its `base64 -d` child, hence 6. The Linux sensor reads
-`/proc/<pid>/cmdline` when it drains the exec event, not at `execve`. A process that exits within
-the few milliseconds before the drain legitimately shows an empty command line, so each one-liner
-starts with `sleep 0.2`, and its pipeline sleeps again before the `echo` so that `base64 -d`
-waits on its stdin: both stay alive past the drain. The scenario measures capture fidelity, not
-that race (#207).
+matching processes, the `sh -c` and its `base64 -d` child, hence 6. The Linux sensor reads argv
+at `execve` in the probe, with offsets from the kernel's BTF (agent#48), so both are always
+counted. Where BTF does not give those offsets it falls back to `/proc/<pid>/cmdline` when it
+drains the exec event, and a process that exits within the few milliseconds before the drain
+legitimately shows an empty command line. For that fallback each one-liner starts with
+`sleep 0.2`, and its pipeline sleeps again before the `echo` so that `base64 -d` waits on its
+stdin: both stay alive past the drain. The scenario measures capture fidelity, not that race
+(#207).
 
 ### `ld-preload-hijack.sh`
 

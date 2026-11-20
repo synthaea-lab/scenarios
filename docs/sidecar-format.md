@@ -76,7 +76,8 @@ in `notes`:
   rules have no windowed deduplication. `lineage.sh` has one matching process per iteration, so
   `min_count: 3, tolerance: 0`. `argv.sh` has two, the `sh -c` and its `base64 -d` child, so
   `min_count: 6`. Count every process the rule can match, child processes included, and keep each
-  one alive past the drain, or the count depends on a race (#207).
+  one alive past the drain, or the count depends on a race wherever argv comes from the `/proc`
+  fallback (#207).
 - **Side effects that are themselves the technique.** `persistence-write.sh` expects
   `min_count: 2`: the append to `~/.bashrc`, and the restore on exit, which is also a write-intent
   open on a persistence path.
