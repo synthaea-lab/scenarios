@@ -19,6 +19,17 @@
 # when reporting a number. Windows-only (`dns-exfil`) and service-dependent scenarios (web
 # servers, MySQL), `signal.sh` (aims at the agent) and the ransomware ones (they exercise the
 # response path, not behavior scoring) are left out.
+#
+# T2_CASES=1 adds scenarios for the case-level scorer (ml#3), whose binding constraint is how
+# many techniques and scenarios the positive cases cover, not process behavior: a ransomware
+# case is case evidence like any other. Off by default, so a T1 capture keeps the set its
+# numbers were reported on.
+#   ransomware-rename-burst   T1486, no setup.
+#   timestomp-linux           T1070.006; the sensor needs the BPF LSM (`inode_setattr`), which
+#                             6.1 refuses: on such a kernel it runs and yields no case.
+#   ransomware-reflex         T1083 + T1486, only when CANARY_DIR names a directory the agent
+#                             planted canaries in ([deception] canary_dirs). Run in EXPECT=observe
+#                             unless EXPECT says otherwise: an enforcing agent kills it mid-run.
 
 # No `-e`: a scenario that fails is data (listed under `failed`), not a reason to stop the run.
 set -uo pipefail
@@ -43,6 +54,15 @@ command -v cc >/dev/null 2>&1 && SCENARIOS+=(ld-preload-hijack)
 # live beside this script (`odd-parents/`), not in scenarios/, because they have no rule
 # sidecar: they exist for this capture.
 SCENARIOS+=(odd-parents/webapp-spawns-shell odd-parents/office-spawns-shell odd-parents/dropped-binary-spawns-children)
+if [ "${T2_CASES:-0}" = 1 ]; then
+    SCENARIOS+=(ransomware-rename-burst timestomp-linux)
+    if [ -n "${CANARY_DIR:-}" ]; then
+        export CANARY_DIR EXPECT="${EXPECT:-observe}"
+        SCENARIOS+=(ransomware-reflex)
+    else
+        echo "T2_CASES: ransomware-reflex skipped (no CANARY_DIR)" >&2
+    fi
+fi
 
 # One line per scenario that started: name, pid, window, exit code (see write_run_json).
 SCENARIOS_TSV="$OUT/scenarios.tsv"
