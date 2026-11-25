@@ -34,6 +34,18 @@ benign workload a second time as root adds `systemd-run` units parented by the s
 Keep each run's capture separate, and check `failed` in `out-malicious/run.json` before using a
 malicious run.
 
+For the case-level scorer ([ml#3](https://github.com/synthaea-lab/ml/issues/3)), `T2_CASES=1`
+adds three scenarios:
+- `ransomware-rename-burst` (T1486);
+- `timestomp-linux` (T1070.006, which needs a kernel whose BPF LSM loads `inode_setattr`);
+- `ransomware-reflex` (T1083 + T1486, only with `CANARY_DIR` set to an agent canary directory).
+
+It is off by default, so a T1 capture keeps the set its numbers were reported on:
+
+```sh
+sudo T2_CASES=1 ./ml-capture/malicious-run.sh out-malicious
+```
+
 ## Training and evaluation
 
 From an ml checkout, with this repository checked out beside it:
