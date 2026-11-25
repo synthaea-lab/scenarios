@@ -28,8 +28,8 @@ What the scenarios prove, and what they do not.
 - **Cooperative processes.** The command-line and environment scenarios assert capture fidelity
   for a process that does not hide. A process that rewrites its own argv before the sensor reads
   `/proc/<pid>/cmdline`, or exits within the drain latency, is out of scope.
-- **One variant per technique.** `log-clear.sh` deletes a file but does not run
-  `journalctl --vacuum`; the Windows persistence scenarios use `schtasks.exe`, `sc.exe` and
+- **One variant per technique, mostly.** T1070.002 has two (`log-clear.sh` deletes a file,
+  `journald-vacuum.sh` runs `journalctl --vacuum`); the Windows persistence scenarios use `schtasks.exe`, `sc.exe` and
   `net user` but not the PowerShell cmdlets; `encoded-powershell.ps1` uses the full
   `-EncodedCommand` spelling and not its abbreviations.
 - **Windows has no sidecars.** The Windows expectations live in each script's header and in the
