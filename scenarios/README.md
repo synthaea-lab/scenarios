@@ -41,6 +41,7 @@ Unless noted, a scenario runs as an ordinary user against an agent started with
 | Scenario | Simulates | Expected detection | Needs |
 | --- | --- | --- | --- |
 | `persistence-write.sh` | A marked comment line appended to `~/.bashrc`, removed on exit | `T1546.004` | |
+| `profile-d-write.sh` | A never-sourced `*.marker` file written under `/etc/profile.d/`, removed on exit | `T1546.004` | root |
 | `log-clear.sh` | A throwaway file under `/var/log/` deleted | `T1070.002` | root |
 | `timestomp-linux.sh` | File times set explicitly three ways, next to a write, a plain `touch` and a `chmod` that must stay silent | `T1070.006` (three alerts) | `bpf` in the active LSM list, kernel 6.3 or later |
 | `signal.sh` | Unprivileged `SIGTERM` and `SIGKILL` aimed at the agent, amid unrelated signal traffic | `T1562.001` | root; the `kill` and `verify-kill` modes restart the agent |
