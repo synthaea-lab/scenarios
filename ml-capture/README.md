@@ -35,16 +35,22 @@ Keep each run's capture separate, and check `failed` in `out-malicious/run.json`
 malicious run.
 
 For the case-level scorer ([ml#3](https://github.com/synthaea-lab/ml/issues/3)), `T2_CASES=1`
-adds three scenarios:
+adds two scenarios:
 - `ransomware-rename-burst` (T1486);
-- `timestomp-linux` (T1070.006, which needs a kernel whose BPF LSM loads `inode_setattr`);
-- `ransomware-reflex` (T1083 + T1486, only with `CANARY_DIR` set to an agent canary directory).
+- `timestomp-linux` (T1070.006). The sensor reports it only with `bpf` in the active LSM list
+  and a kernel whose verifier accepts its `inode_setattr` program. Elsewhere the scenario runs
+  and yields 0 cases, which is expected.
 
-It is off by default, so a T1 capture keeps the set its numbers were reported on:
+It is off by default, so a T1 capture keeps the set its numbers were reported on. A value other
+than `0` or `1` is refused. Pass it on the `sudo` line, since `sudo` drops the caller's
+environment:
 
 ```sh
 sudo T2_CASES=1 ./ml-capture/malicious-run.sh out-malicious
 ```
+
+`ransomware-reflex` is not part of the set. Its T1083 comes from canaries and tripwires that
+only `agent run` plants and arms, and a capture replays without them.
 
 ## Training and evaluation
 
