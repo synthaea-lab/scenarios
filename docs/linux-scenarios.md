@@ -89,6 +89,19 @@ The variable is set on a single `sleep` rather than on a `sh -c` wrapper: a wrap
 fixed because the marker path is compiled into the library and the alert names the library path.
 The script warns if the marker is missing, which means the library did not load.
 
+### `ld-audit-hijack.sh`
+
+[Script](../scenarios/ld-audit-hijack.sh) · [sidecar](../scenarios/ld-audit-hijack.yaml) ·
+`T1574.006 ×1` · `cc`; glibc for the library to load
+
+Compiles an rtld-audit library whose only entry point, `la_version`, writes a marker file, then
+runs `sleep` with `LD_AUDIT` pointing at it under `/tmp`. `LD_AUDIT` is the quieter sibling of
+`LD_PRELOAD`: the linker loads the library before any other object, and it is seen far less
+often. `check_ld_preload_hijack` reads both variables from the exec's captured security
+environment, and `/tmp` is never in the trust set. `sleep` is the only exec carrying the variable,
+so there is one alert. musl's dynamic linker ignores `LD_AUDIT`. There the alert is the same, since
+the variable is still captured, but the script warns that the marker is missing.
+
 ### `pid-reuse.sh`
 
 [Script](../scenarios/pid-reuse.sh) · [sidecar](../scenarios/pid-reuse.yaml) · `T1486 ×1` · root,
