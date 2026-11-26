@@ -23,6 +23,7 @@ Unless noted, a scenario runs as an ordinary user against an agent started with
 | --- | --- | --- | --- |
 | `lineage.sh` | A process named like a web server spawns a shell | `T1059` | |
 | `argv.sh` | A shell one-liner with a base64 decode in its arguments | `T1059.004` | |
+| `argv-padding.sh` | A `sh -c` script whose command sits in the middle of 3 KiB of no-op padding, the part the probe does not capture | `T1027.010` | |
 | `ld-preload-hijack.sh` | `LD_PRELOAD` pointed at a shared object outside the dynamic linker's trusted paths | `T1574.006` | A C compiler (`cc`) |
 | `pid-reuse.sh` | A recycled pid posing as `sed` renames files; `real` mode runs a real `sed -i.bak` as a control | `T1486` (`recycled`), none (`real`) | root, `python3` |
 

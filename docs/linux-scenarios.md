@@ -72,6 +72,19 @@ the few milliseconds before the drain legitimately shows an empty command line, 
 starts with `sleep 0.2` to stay alive past it: the scenario measures capture fidelity, not that
 race.
 
+### `argv-padding.sh`
+
+[Script](../scenarios/argv-padding.sh) · [sidecar](../scenarios/argv-padding.yaml) ·
+`T1027.010 ×1`
+
+Runs `sh -c` with a script of about 3 KiB: 2 KiB of no-op `:` padding, the command, then 1 KiB
+more padding. Past 1 KiB the eBPF probe keeps only the first 768 and the last 256 bytes of an
+argument block (ADR-0045), so the command falls in the bytes left out, where no content rule
+can see it. `check_truncated_cmdline` alerts on the cut itself, at Low because the probe
+measured it. The padding is built with `printf -v`, a builtin, so no other exec carries a long
+command line. When the probe's read fails and userspace reads `/proc` instead, 3 KiB fit and
+there is no alert.
+
 ### `ld-preload-hijack.sh`
 
 [Script](../scenarios/ld-preload-hijack.sh) · [sidecar](../scenarios/ld-preload-hijack.yaml) ·
