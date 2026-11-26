@@ -47,7 +47,8 @@ directory and tool directory, and removes `~/.local/share` again if it created i
 
 Left out: scenarios that need a service (web servers, MySQL), `signal.sh` (it targets the agent),
 the ransomware and response scenarios (they exercise the response path, not behavior scoring) and
-`dns-exfil.sh`.
+`dns-exfil.sh`. For the case-level scorer, `T2_CASES=1` adds `ransomware-rename-burst` and
+`timestomp-linux`; see [`ml-capture/README.md`](../ml-capture/README.md#recording-a-capture).
 
 A scenario that fails is recorded, not fatal; a script that is not executable is skipped with a
 message and listed nowhere. The run exits 1 if none ran.
