@@ -1,0 +1,27 @@
+name: ld-audit-hijack
+platform: linux
+script: ld-audit-hijack.sh
+simulates: >
+  LD_AUDIT set to an rtld-audit library outside the dynamic linker's trusted search path
+  (T1574.006, Hijack Execution Flow: Dynamic Linker Hijacking): the quieter sibling of
+  ld-preload-hijack's LD_PRELOAD. The library only proves it was loaded (its la_version
+  writes a marker file); no symbol binding is changed and nothing is hidden.
+expected_detections:
+  - technique: "T1574.006"
+    rule: check_ld_preload_hijack   # crates/rules/src/stateless/privilege_escalation.rs —
+                                     # LD_PRELOAD or LD_AUDIT in ExecEvent::env_security,
+                                     # outside the trust set (/tmp never trusted)
+    min_count: 1
+    tolerance: 0
+notes: >
+  Live-tested 2026-11-25 on Debian 12 (6.1.0-17, glibc), agent at `main` (`2ce1d45b`) plus
+  agent#365 (no rule change), eBPF sensor, scenario run as an unprivileged user: exactly 1
+  T1574.006 alert (comm sleep, `LD_AUDIT=/tmp/synthaea-ldaudit-.../audit.so`), the marker
+  present (glibc loaded the library), and no work directory left. Exactly one alert because
+  `sleep` is the only exec carrying LD_AUDIT; the compiler runs without it. On musl the
+  dynamic linker ignores LD_AUDIT: the variable is still captured and the alert is the
+  same, but the script warns that the marker is missing. The work directory is always under
+  /tmp, whatever TMPDIR says. Compiling the library also raises T1027.010 twice on Debian 12
+  (gcc 12): `collect2` and `ld` get argument blocks over 1 KiB, which the probe cuts
+  (73 and 43 bytes omitted, same in two runs with the rules content). Not listed: the count
+  depends on the toolchain's paths. With the rules content, nothing else fires.
