@@ -87,6 +87,18 @@ measured it. The padding is built with `printf -v`, a builtin, so no other exec 
 command line. When the probe's read fails and userspace reads `/proc` instead, 3 KiB fit and
 there is no alert.
 
+### `encoded-stager.sh`
+
+[Script](../scenarios/encoded-stager.sh) · [sidecar](../scenarios/encoded-stager.yaml) ·
+`T1059.004 ×1`
+
+Writes a base64 blob to a file in a fresh `mktemp -d` directory, decodes it with
+`base64 --decode` and pipes the result into `sh`; the decoded script only prints a line. This is
+the staged shape of `argv.sh`'s one-liner: the long decode flag, and no `sh -c` wrapper, so
+`base64` is the only exec `check_base64_decode` matches. The blob is a constant in the script:
+encoding it at run time would add a `base64` exec whose work-directory path can contain `-d`,
+a second match that would come and go between runs.
+
 ### `ld-preload-hijack.sh`
 
 [Script](../scenarios/ld-preload-hijack.sh) · [sidecar](../scenarios/ld-preload-hijack.yaml) ·

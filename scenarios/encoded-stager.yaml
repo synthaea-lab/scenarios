@@ -1,0 +1,22 @@
+name: encoded-stager
+platform: linux
+script: encoded-stager.sh
+simulates: >
+  A base64-staged shell script (T1059.004, Command and Scripting Interpreter: Unix Shell):
+  an encoded script stored in a file, decoded with `base64 --decode` and piped into `sh`.
+  The staged shape of argv.sh's one-liner: the blob is in a file, the decode flag is the
+  long one, and no `sh -c` wrapper carries it. The decoded script only prints a line.
+expected_detections:
+  - technique: "T1059.004"
+    rule: check_base64_decode   # crates/rules/src/stateless/execution.rs — stateless,
+                                 # cmdline holds `base64` and a decode flag
+    min_count: 1
+    tolerance: 0
+notes: >
+  Live-tested 2026-11-26 on Debian 12 (6.1.0-17), agent at `main` (`2ce1d45b`) plus
+  agent#365 (no rule change), eBPF sensor, scenario run as an unprivileged user: exactly 1
+  T1059.004 alert per run, on `base64 --decode /tmp/synthaea-stager-.../stage.b64`. Exactly
+  one because `base64` is the only exec whose command line holds the decode; the `sh`
+  reading the pipe has the command line `sh`. The blob is a constant in the script: encoding
+  it at run time would add a `base64` exec whose work-directory path can contain `-d` (a
+  `mktemp` suffix starting with `d`), a second match that would come and go between runs.
