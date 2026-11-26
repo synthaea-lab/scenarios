@@ -198,6 +198,19 @@ contain `.bashrc`, so it never matches the rule. There is no `touch` before the 
 `touch` opens an existing file for writing, which would be a third alert on GNU systems and not on
 busybox ones.
 
+### `profile-d-write.sh`
+
+[Script](../scenarios/profile-d-write.sh) · [sidecar](../scenarios/profile-d-write.yaml) ·
+`T1546.004 ×1` · root
+
+Writes one comment line to `/etc/profile.d/synthaea-scenario-<pid>.marker`, then removes it. This
+is the system-wide form of the persistence that `persistence-write.sh` exercises for one user's
+`~/.bashrc`: a script dropped there runs in every user's login shell. `/etc/profile` sources only
+`/etc/profile.d/*.sh`, so the `.marker` name means the file is never run. `check_persistence_write`
+matches the directory, not the extension, so the alert is the same as for a real `*.sh` drop.
+There is one alert, not two: nothing is restored, and the removal is an unlink, which the rule
+does not watch.
+
 ### `log-clear.sh`
 
 [Script](../scenarios/log-clear.sh) · [sidecar](../scenarios/log-clear.yaml) · `T1070.002 ×1` ·
