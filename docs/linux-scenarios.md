@@ -20,6 +20,7 @@ them.
 | Function | Source |
 | --- | --- |
 | `check_base64_decode` | [`crates/rules/src/stateless/execution.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless/execution.rs) |
+| `check_truncated_cmdline` | [`crates/rules/src/stateless/defense_evasion.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless/defense_evasion.rs) |
 | `check_ld_preload_hijack` | [`crates/rules/src/stateless/privilege_escalation.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless/privilege_escalation.rs) |
 | `check_persistence_write` | [`crates/rules/src/stateless/persistence.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless/persistence.rs) |
 | `check_log_file_delete`, `evaluate_file_set_time` | [`crates/rules/src/stateless/indicator_removal.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless/indicator_removal.rs) |
