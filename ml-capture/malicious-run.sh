@@ -6,6 +6,7 @@
 #
 #   terminal A:  agent capture-events --output events-malicious.jsonl     (as root)
 #   terminal B:  sudo ./malicious-run.sh <out-dir>
+#                sudo T2_CASES=1 ./malicious-run.sh <out-dir>   (adds the T2 set, see below)
 #
 # <out-dir>/run.json gets the runner's pid and the window of the run in ns since the epoch, and
 # each scenario's own pid and window (the case labeller, ml#3, attributes a case by them):
@@ -18,7 +19,18 @@
 # whose parent is odd (`lineage.sh`: a process named like a web server spawns a shell). Say so
 # when reporting a number. Windows-only (`dns-exfil`) and service-dependent scenarios (web
 # servers, MySQL), `signal.sh` (aims at the agent) and the ransomware ones (they exercise the
-# response path, not behavior scoring) are left out.
+# response path, not behavior scoring) are left out of the default set (see T2_CASES below).
+#
+# T2_CASES=1 adds scenarios for the case-level scorer (ml#3), whose binding constraint is how
+# many techniques and scenarios the positive cases cover, not process behavior: a ransomware
+# case is case evidence like any other. Off by default (T2_CASES=0), so a T1 capture keeps the
+# set its numbers were reported on; any other value is refused.
+#   ransomware-rename-burst   T1486, no setup.
+#   timestomp-linux           T1070.006. The sensor reports it only with `bpf` in the active
+#                             LSM list and a verifier that accepts its `inode_setattr` program;
+#                             otherwise the scenario runs and its summary shows 0 cases.
+# `ransomware-reflex` is not in the set: its T1083 comes from canaries and tripwires that only
+# `agent run` plants and arms, and the capture is `capture-events` + `agent replay`.
 
 # No `-e`: a scenario that fails is data (listed under `failed`), not a reason to stop the run.
 set -uo pipefail
@@ -29,6 +41,11 @@ set -uo pipefail
 require_root "sudo $0 <out-dir>"
 # Checked now, not when run.json is written at the end of a run of several minutes.
 require_command python3 "it writes run.json"
+# Refused before anything is created or run, so a typo leaves no empty out-dir behind.
+case "${T2_CASES:-0}" in
+    0 | 1) ;;
+    *) die_precondition "T2_CASES must be 0 or 1, not '${T2_CASES}'" ;;
+esac
 OUT="${1:?usage: $0 <out-dir>}"
 mkdir -p "$OUT"
 SCENARIO_DIR="$(cd "$(dirname "$0")/../scenarios" && pwd)"
@@ -43,6 +60,9 @@ command -v cc >/dev/null 2>&1 && SCENARIOS+=(ld-preload-hijack)
 # live beside this script (`odd-parents/`), not in scenarios/, because they have no rule
 # sidecar: they exist for this capture.
 SCENARIOS+=(odd-parents/webapp-spawns-shell odd-parents/office-spawns-shell odd-parents/dropped-binary-spawns-children)
+if [ "${T2_CASES:-0}" = 1 ]; then
+    SCENARIOS+=(ransomware-rename-burst timestomp-linux)
+fi
 
 # One line per scenario that started: name, pid, window, exit code (see write_run_json).
 SCENARIOS_TSV="$OUT/scenarios.tsv"

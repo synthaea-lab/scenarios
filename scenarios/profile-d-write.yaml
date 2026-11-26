@@ -1,0 +1,23 @@
+name: profile-d-write
+platform: linux
+script: profile-d-write.sh
+simulates: >
+  A file written under /etc/profile.d/ (T1546.004, Unix Shell Configuration Modification):
+  the system-wide form of shell-profile persistence, which runs for every user's login
+  shell, next to persistence-write's one-user ~/.bashrc. The file is named `*.marker`, so
+  /etc/profile (which sources only `*.sh`) never runs it; it holds one comment line and is
+  removed on exit.
+expected_detections:
+  - technique: "T1546.004"
+    rule: check_persistence_write   # crates/rules/src/stateless/persistence.rs —
+                                     # PERSISTENCE_PATH_PATTERNS substring match on
+                                     # /etc/profile.d/, gated on has_write_intent(flags)
+    min_count: 1
+    tolerance: 0
+notes: >
+  Live-tested 2026-11-25 on Debian 12 (6.1.0-17), agent at `main` (`2ce1d45b`) plus
+  agent#365 (no rule change), eBPF sensor, scenario run as root: exactly 1 T1546.004 alert
+  (comm bash, the full /etc/profile.d/synthaea-scenario-<pid>.marker path), and the
+  directory listing of /etc/profile.d identical before and after. One alert, not two as in
+  persistence-write: nothing is restored, and the removal is an unlink, which this rule
+  does not watch.

@@ -22,7 +22,7 @@ them.
 | `check_base64_decode` | [`crates/rules/src/stateless/execution.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless/execution.rs) |
 | `check_ld_preload_hijack` | [`crates/rules/src/stateless/privilege_escalation.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless/privilege_escalation.rs) |
 | `check_persistence_write` | [`crates/rules/src/stateless/persistence.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless/persistence.rs) |
-| `check_log_file_delete`, `evaluate_file_set_time` | [`crates/rules/src/stateless/indicator_removal.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless/indicator_removal.rs) |
+| `check_log_file_delete`, `check_log_clear_exec`, `evaluate_file_set_time` | [`crates/rules/src/stateless/indicator_removal.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless/indicator_removal.rs) |
 | `check_security_process_signal` | [`crates/rules/src/stateless/impair_defenses.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless/impair_defenses.rs) |
 | `check_web_server_spawns_shell` | [`crates/rules/src/state.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/state.rs) |
 | `check_beacon` | [`crates/rules/src/network_state.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/network_state.rs) |
@@ -211,6 +211,19 @@ contain `.bashrc`, so it never matches the rule. There is no `touch` before the 
 `touch` opens an existing file for writing, which would be a third alert on GNU systems and not on
 busybox ones.
 
+### `profile-d-write.sh`
+
+[Script](../scenarios/profile-d-write.sh) · [sidecar](../scenarios/profile-d-write.yaml) ·
+`T1546.004 ×1` · root
+
+Writes one comment line to `/etc/profile.d/synthaea-scenario-<pid>.marker`, then removes it. This
+is the system-wide form of the persistence that `persistence-write.sh` exercises for one user's
+`~/.bashrc`: a script dropped there runs in every user's login shell. `/etc/profile` sources only
+`/etc/profile.d/*.sh`, so the `.marker` name means the file is never run. `check_persistence_write`
+matches the directory, not the extension, so the alert is the same as for a real `*.sh` drop.
+There is one alert, not two: nothing is restored, and the removal is an unlink, which the rule
+does not watch.
+
 ### `log-clear.sh`
 
 [Script](../scenarios/log-clear.sh) · [sidecar](../scenarios/log-clear.yaml) · `T1070.002 ×1` ·
@@ -219,8 +232,19 @@ root
 Creates `/var/log/synthaea-scenario-test.log` and deletes it. `check_log_file_delete` fires on a
 delete under a known log location. The safety-net cleanup checks that the file exists before
 removing it: the probe fires at syscall entry, before the kernel knows whether the file exists, so
-a second `unlink` would be a second alert. The exec-side sibling (`journalctl --vacuum` and the
-like) is not exercised.
+a second `unlink` would be a second alert. The exec-side sibling is
+[`journald-vacuum.sh`](#journald-vacuumsh).
+
+### `journald-vacuum.sh`
+
+[Script](../scenarios/journald-vacuum.sh) · [sidecar](../scenarios/journald-vacuum.yaml) ·
+`T1070.002 ×1` · needs `journalctl` (a systemd distro)
+
+Runs `journalctl -D <dir> --vacuum-time=1s` against a journal directory it creates. On the system
+journal, the same command drops every archived file at once. `check_log_clear_exec` fires on an
+exec whose command line holds `journalctl` and `--vacuum`, so pointing `-D` at a throwaway
+directory gives the same alert without vacuuming the real journal. With `log-clear.sh`, it gives
+T1070.002 a second scenario, through a second rule.
 
 ### `timestomp-linux.sh`
 
