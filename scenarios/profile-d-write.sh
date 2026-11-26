@@ -19,7 +19,8 @@
 #   1) terminal A: sudo target/release/agent run
 #   2) terminal B: sudo ./scenarios/profile-d-write.sh (writes under /etc/profile.d/)
 #   3) expected in terminal A:
-#      T1546.004 — pid=... comm=...: write to a known persistence path (/etc/profile.d/): /etc/profile.d/synthaea-scenario-<pid>.marker
+#      T1546.004 — pid=... comm=...: write to a known persistence path (/etc/profile.d/):
+#      /etc/profile.d/synthaea-scenario-<pid>.marker
 
 set -euo pipefail
 
@@ -36,7 +37,9 @@ cleanup() { [ -e "$TARGET" ] && rm -f "$TARGET"; true; }
 add_cleanup cleanup
 
 say "Writing $TARGET (system-wide shell-profile persistence, T1546.004; never sourced: not *.sh)..."
-printf '%s\n' "# synthaea scenario marker (harmless; written and removed by scenarios/profile-d-write.sh)" > "$TARGET"
+MARKER_TEXT="# synthaea scenario marker"
+MARKER_TEXT+=" (harmless; written and removed by scenarios/profile-d-write.sh)"
+printf '%s\n' "$MARKER_TEXT" > "$TARGET"
 
 say "Removing it..."
 rm -f "$TARGET"
