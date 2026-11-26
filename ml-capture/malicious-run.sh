@@ -29,6 +29,15 @@
 #   timestomp-linux           T1070.006. The sensor reports it only with `bpf` in the active
 #                             LSM list and a verifier that accepts its `inode_setattr` program;
 #                             otherwise the scenario runs and its summary shows 0 cases.
+#   Second variants, so no technique rests on a single scenario's process shape:
+#   journald-vacuum           T1070.002 (needs journalctl).
+#   profile-d-write           T1546.004 (root, which the runner already is).
+#   ld-audit-hijack           T1574.006 (needs cc). Its compile adds two T1027.010 alerts
+#                             (collect2, ld) to the same case.
+#   download-exec             T1105 (needs curl, python3, cmp; serves on 127.0.0.1:8093).
+#   argv-padding              T1027.010.
+#   encoded-stager            T1059.004.
+#   A scenario whose commands are missing is skipped with a line on stderr, not run to fail.
 # `ransomware-reflex` is not in the set: its T1083 comes from canaries and tripwires that only
 # `agent run` plants and arms, and the capture is `capture-events` + `agent replay`.
 
@@ -53,6 +62,16 @@ ODD_DIR="$(cd "$(dirname "$0")/odd-parents" && pwd)"
 GAP="${GAP:-8}"          # seconds between scenarios, so each one's window is its own
 TIMEOUT="${TIMEOUT:-120}"
 
+# Adds scenario $1 when every later argument is an installed command; says so when one is not.
+add_if_commands() {
+    local name="$1" cmd
+    shift
+    for cmd in "$@"; do
+        command -v "$cmd" >/dev/null 2>&1 || { echo "skip $name: no $cmd" >&2; return 0; }
+    done
+    SCENARIOS+=("$name")
+}
+
 SCENARIOS=(beacon bind-shell dropper-chain lineage persistence-write respawn-beacon argv log-clear)
 command -v cc >/dev/null 2>&1 && SCENARIOS+=(ld-preload-hijack)
 # Scenarios whose PARENT is odd (a web application or an Office-named process running a shell,
@@ -61,7 +80,10 @@ command -v cc >/dev/null 2>&1 && SCENARIOS+=(ld-preload-hijack)
 # sidecar: they exist for this capture.
 SCENARIOS+=(odd-parents/webapp-spawns-shell odd-parents/office-spawns-shell odd-parents/dropped-binary-spawns-children)
 if [ "${T2_CASES:-0}" = 1 ]; then
-    SCENARIOS+=(ransomware-rename-burst timestomp-linux)
+    SCENARIOS+=(ransomware-rename-burst timestomp-linux profile-d-write argv-padding encoded-stager)
+    add_if_commands journald-vacuum journalctl
+    add_if_commands ld-audit-hijack cc
+    add_if_commands download-exec curl python3 cmp
 fi
 
 # One line per scenario that started: name, pid, window, exit code (see write_run_json).

@@ -35,11 +35,24 @@ Keep each run's capture separate, and check `failed` in `out-malicious/run.json`
 malicious run.
 
 For the case-level scorer ([ml#3](https://github.com/synthaea-lab/ml/issues/3)), `T2_CASES=1`
-adds two scenarios:
+adds these scenarios:
 - `ransomware-rename-burst` (T1486);
 - `timestomp-linux` (T1070.006). The sensor reports it only with `bpf` in the active LSM list
   and a kernel whose verifier accepts its `inode_setattr` program. Elsewhere the scenario runs
   and yields 0 cases, which is expected.
+
+It also adds a second variant for six techniques, so that no technique rests on the process shape
+of a single scenario:
+- `journald-vacuum` (T1070.002), when `journalctl` is installed;
+- `profile-d-write` (T1546.004);
+- `ld-audit-hijack` (T1574.006), when `cc` is installed. Its compile step adds two T1027.010
+  alerts (`collect2`, `ld`) to the same case;
+- `download-exec` (T1105), when `curl`, `python3` and `cmp` are installed. It serves its payload
+  on `127.0.0.1:8093`;
+- `argv-padding` (T1027.010);
+- `encoded-stager` (T1059.004).
+
+A variant whose commands are missing is skipped, with a `skip` line on stderr.
 
 It is off by default, so a T1 capture keeps the set its numbers were reported on. A value other
 than `0` or `1` is refused. Pass it on the `sudo` line, since `sudo` drops the caller's
