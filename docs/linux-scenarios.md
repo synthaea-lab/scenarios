@@ -20,9 +20,11 @@ them.
 | Function | Source |
 | --- | --- |
 | `check_base64_decode` | [`crates/rules/src/stateless/execution.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless/execution.rs) |
+| `check_download_then_exec` | [`crates/rules/src/download_state.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/download_state.rs) |
+| `check_truncated_cmdline` | [`crates/rules/src/stateless/defense_evasion.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless/defense_evasion.rs) |
 | `check_ld_preload_hijack` | [`crates/rules/src/stateless/privilege_escalation.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless/privilege_escalation.rs) |
 | `check_persistence_write` | [`crates/rules/src/stateless/persistence.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless/persistence.rs) |
-| `check_log_file_delete`, `evaluate_file_set_time` | [`crates/rules/src/stateless/indicator_removal.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless/indicator_removal.rs) |
+| `check_log_file_delete`, `check_log_clear_exec`, `evaluate_file_set_time` | [`crates/rules/src/stateless/indicator_removal.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless/indicator_removal.rs) |
 | `check_security_process_signal` | [`crates/rules/src/stateless/impair_defenses.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless/impair_defenses.rs) |
 | `check_web_server_spawns_shell` | [`crates/rules/src/state.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/state.rs) |
 | `check_beacon` | [`crates/rules/src/network_state.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/network_state.rs) |
@@ -72,6 +74,19 @@ the few milliseconds before the drain legitimately shows an empty command line, 
 starts with `sleep 0.2` to stay alive past it: the scenario measures capture fidelity, not that
 race.
 
+### `argv-padding.sh`
+
+[Script](../scenarios/argv-padding.sh) · [sidecar](../scenarios/argv-padding.yaml) ·
+`T1027.010 ×1`
+
+Runs `sh -c` with a script of about 3 KiB: 2 KiB of no-op `:` padding, the command, then 1 KiB
+more padding. Past 1 KiB the eBPF probe keeps only the first 768 and the last 256 bytes of an
+argument block (ADR-0045), so the command falls in the bytes left out, where no content rule
+can see it. `check_truncated_cmdline` alerts on the cut itself, at Low because the probe
+measured it. The padding is built with `printf -v`, a builtin, so no other exec carries a long
+command line. When the probe's read fails and userspace reads `/proc` instead, 3 KiB fit and
+there is no alert.
+
 ### `encoded-stager.sh`
 
 [Script](../scenarios/encoded-stager.sh) · [sidecar](../scenarios/encoded-stager.yaml) ·
@@ -100,6 +115,19 @@ The variable is set on a single `sleep` rather than on a `sh -c` wrapper: a wrap
 `LD_PRELOAD` on two execs and make the count 1 or 2 depending on drain timing. The paths are
 fixed because the marker path is compiled into the library and the alert names the library path.
 The script warns if the marker is missing, which means the library did not load.
+
+### `ld-audit-hijack.sh`
+
+[Script](../scenarios/ld-audit-hijack.sh) · [sidecar](../scenarios/ld-audit-hijack.yaml) ·
+`T1574.006 ×1` · `cc`; glibc for the library to load
+
+Compiles an rtld-audit library whose only entry point, `la_version`, writes a marker file, then
+runs `sleep` with `LD_AUDIT` pointing at it under `/tmp`. `LD_AUDIT` is the quieter sibling of
+`LD_PRELOAD`: the linker loads the library before any other object, and it is seen far less
+often. `check_ld_preload_hijack` reads both variables from the exec's captured security
+environment, and `/tmp` is never in the trust set. `sleep` is the only exec carrying the variable,
+so there is one alert. musl's dynamic linker ignores `LD_AUDIT`. There the alert is the same, since
+the variable is still captured, but the script warns that the marker is missing.
 
 ### `pid-reuse.sh`
 
@@ -156,6 +184,25 @@ pid; `wget ... && ./payload` would be two processes, a different rule. The outpu
 by `mktemp` (`O_EXCL`), so the write cannot follow a planted symlink; the rule keys on the pid,
 not the path.
 
+### `download-exec.sh`
+
+[Script](../scenarios/download-exec.sh) · [sidecar](../scenarios/download-exec.yaml) ·
+`T1105 ×2`, `T1105/T1059/T1071 ×1`, `T1059/T1071 ×1` · needs `curl`, `python3`, `cmp`
+
+`curl -o` downloads a two-line shell script from a loopback `python3 -m http.server` into a fresh
+`mktemp -d` directory, and a second process then runs the script. That is the join
+`check_download_then_exec` makes: it remembers each write-intent open by a known downloader and
+alerts when an exec's `comm` is the basename of such a path within 60 s. The payload's name has 14
+bytes, because the kernel cuts `comm` at 15. `dropper-chain.sh` covers the single-pid chain, not
+this join. The count is 2 because the correlator's `rule_connect_filewrite` also writes `T1105`, on
+`curl`, and only when the file lands under `/tmp`: the drop directory is always there,
+whatever `TMPDIR` says. `curl` also completes the correlator's single-pid chains, which are
+asserted too. With the rules checkout loaded, Sigma `susp_tmp_exec` adds `T1059/T1036` on the
+payload's exec. The script waits for the listener by reading `/proc/net/tcp` and `tcp6` with
+builtins, because a probe that connects would add shell-network alerts of its own. It refuses to
+start if the port is already taken, and runs the downloaded file only if `cmp` finds the bytes it
+served: content from a listener it did not start is never executed.
+
 ### `bind-shell.sh`
 
 [Script](../scenarios/bind-shell.sh) · [sidecar](../scenarios/bind-shell.yaml) ·
@@ -210,6 +257,19 @@ contain `.bashrc`, so it never matches the rule. There is no `touch` before the 
 `touch` opens an existing file for writing, which would be a third alert on GNU systems and not on
 busybox ones.
 
+### `profile-d-write.sh`
+
+[Script](../scenarios/profile-d-write.sh) · [sidecar](../scenarios/profile-d-write.yaml) ·
+`T1546.004 ×1` · root
+
+Writes one comment line to `/etc/profile.d/synthaea-scenario-<pid>.marker`, then removes it. This
+is the system-wide form of the persistence that `persistence-write.sh` exercises for one user's
+`~/.bashrc`: a script dropped there runs in every user's login shell. `/etc/profile` sources only
+`/etc/profile.d/*.sh`, so the `.marker` name means the file is never run. `check_persistence_write`
+matches the directory, not the extension, so the alert is the same as for a real `*.sh` drop.
+There is one alert, not two: nothing is restored, and the removal is an unlink, which the rule
+does not watch.
+
 ### `log-clear.sh`
 
 [Script](../scenarios/log-clear.sh) · [sidecar](../scenarios/log-clear.yaml) · `T1070.002 ×1` ·
@@ -218,8 +278,19 @@ root
 Creates `/var/log/synthaea-scenario-test.log` and deletes it. `check_log_file_delete` fires on a
 delete under a known log location. The safety-net cleanup checks that the file exists before
 removing it: the probe fires at syscall entry, before the kernel knows whether the file exists, so
-a second `unlink` would be a second alert. The exec-side sibling (`journalctl --vacuum` and the
-like) is not exercised.
+a second `unlink` would be a second alert. The exec-side sibling is
+[`journald-vacuum.sh`](#journald-vacuumsh).
+
+### `journald-vacuum.sh`
+
+[Script](../scenarios/journald-vacuum.sh) · [sidecar](../scenarios/journald-vacuum.yaml) ·
+`T1070.002 ×1` · needs `journalctl` (a systemd distro)
+
+Runs `journalctl -D <dir> --vacuum-time=1s` against a journal directory it creates. On the system
+journal, the same command drops every archived file at once. `check_log_clear_exec` fires on an
+exec whose command line holds `journalctl` and `--vacuum`, so pointing `-D` at a throwaway
+directory gives the same alert without vacuuming the real journal. With `log-clear.sh`, it gives
+T1070.002 a second scenario, through a second rule.
 
 ### `timestomp-linux.sh`
 
