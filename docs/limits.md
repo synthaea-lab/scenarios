@@ -28,10 +28,10 @@ What the scenarios prove, and what they do not.
 - **Cooperative processes.** The command-line and environment scenarios assert capture fidelity
   for a process that does not hide. A process that rewrites its own argv before the sensor reads
   `/proc/<pid>/cmdline`, or exits within the drain latency, is out of scope.
-- **One variant per technique, mostly.** T1070.002 has two (`log-clear.sh` deletes a file,
-  `journald-vacuum.sh` runs `journalctl --vacuum`); the Windows persistence scenarios use `schtasks.exe`, `sc.exe` and
-  `net user` but not the PowerShell cmdlets; `encoded-powershell.ps1` uses the full
-  `-EncodedCommand` spelling and not its abbreviations.
+- **One or two variants per technique.** A technique is covered by one or two scenarios, each
+  one shape of it, not by the range of ways an intruder could do it. The Windows persistence
+  scenarios use `schtasks.exe`, `sc.exe` and `net user` but not the PowerShell cmdlets;
+  `encoded-powershell.ps1` uses the full `-EncodedCommand` spelling and not its abbreviations.
 - **Windows has no sidecars.** The Windows expectations live in each script's header and in the
   rig's Windows catalog, so they are not hash-bound and not read by the ML pipeline.
 - **No macOS scenarios.** Nothing in the catalog targets macOS.
