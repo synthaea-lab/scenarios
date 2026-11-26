@@ -6,6 +6,7 @@
 #
 #   terminal A:  agent capture-events --output events-malicious.jsonl     (as root)
 #   terminal B:  sudo ./malicious-run.sh <out-dir>
+#                sudo T2_CASES=1 ./malicious-run.sh <out-dir>   (adds the T2 set, see below)
 #
 # <out-dir>/run.json gets the runner's pid and the window of the run in ns since the epoch, and
 # each scenario's own pid and window (the case labeller, ml#3, attributes a case by them):
@@ -40,6 +41,11 @@ set -uo pipefail
 require_root "sudo $0 <out-dir>"
 # Checked now, not when run.json is written at the end of a run of several minutes.
 require_command python3 "it writes run.json"
+# Refused before anything is created or run, so a typo leaves no empty out-dir behind.
+case "${T2_CASES:-0}" in
+    0 | 1) ;;
+    *) die_precondition "T2_CASES must be 0 or 1, not '${T2_CASES}'" ;;
+esac
 OUT="${1:?usage: $0 <out-dir>}"
 mkdir -p "$OUT"
 SCENARIO_DIR="$(cd "$(dirname "$0")/../scenarios" && pwd)"
@@ -54,11 +60,9 @@ command -v cc >/dev/null 2>&1 && SCENARIOS+=(ld-preload-hijack)
 # live beside this script (`odd-parents/`), not in scenarios/, because they have no rule
 # sidecar: they exist for this capture.
 SCENARIOS+=(odd-parents/webapp-spawns-shell odd-parents/office-spawns-shell odd-parents/dropped-binary-spawns-children)
-case "${T2_CASES:-0}" in
-    0) ;;
-    1) SCENARIOS+=(ransomware-rename-burst timestomp-linux) ;;
-    *) die_precondition "T2_CASES must be 0 or 1, not '${T2_CASES}'" ;;
-esac
+if [ "${T2_CASES:-0}" = 1 ]; then
+    SCENARIOS+=(ransomware-rename-burst timestomp-linux)
+fi
 
 # One line per scenario that started: name, pid, window, exit code (see write_run_json).
 SCENARIOS_TSV="$OUT/scenarios.tsv"
