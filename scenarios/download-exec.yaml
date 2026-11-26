@@ -3,8 +3,8 @@ platform: linux
 script: download-exec.sh
 simulates: >
   Ingress tool transfer followed by execution (T1105): curl downloads a small shell script
-  from a loopback HTTP server into a fresh directory, and the script is then executed by a
-  second process, within the 60 s download-to-execution window.
+  from a loopback HTTP server into a fresh directory under /tmp, and the script is then
+  executed by a second process, within the 60 s download-to-execution window.
 expected_detections:
   - technique: "T1105"
     rule: check_download_then_exec   # crates/rules/src/download_state.rs — the exec's comm
@@ -13,14 +13,29 @@ expected_detections:
                                       # on curl itself, same technique string
     min_count: 2
     tolerance: 0
+  - technique: "T1105/T1059/T1071"
+    rule: rule_spawn_connect_filewrite   # crates/correlator/src/rules.rs — curl executes,
+                                          # connects and writes under one pid
+    min_count: 1
+    tolerance: 0
+  - technique: "T1059/T1071"
+    rule: rule_spawn_connect   # crates/correlator/src/rules.rs — curl executes and connects
+    min_count: 1
+    tolerance: 0
 notes: >
   Live-tested 2026-11-26 on Debian 12 (6.1.0-17), agent at `main` (`2ce1d45b`) plus
-  agent#365 (no rule change), eBPF sensor, scenario run as an unprivileged user, three runs:
-  exactly 2 T1105 alerts each time. One is check_download_then_exec on the payload's exec
-  (`comm=syn-dl-payload executes .../syn-dl-payload, written 0.0s earlier by ... comm=curl`),
-  the other is the correlator's rule_connect_filewrite on curl, which carries the same
-  "T1105" string; a sidecar counts by technique string, so both count. curl also raises
-  T1105/T1059/T1071 and T1059/T1071 (dropper-chain.yaml asserts the first), not listed here.
-  The listener wait reads /proc/net/tcp with builtins: an earlier draft probed with bash
-  /dev/tcp subshells, and each probe was a shell making a connection (BAYES, observe-mode
-  RESPONSE-KILL). No work directory left.
+  agent#365 (no rule change), eBPF sensor, scenario run as an unprivileged user, five runs
+  (two with the rules checkout as content): exactly 2 T1105, 1 T1105/T1059/T1071 and 1
+  T1059/T1071 each time. The two T1105 are check_download_then_exec on the payload's exec
+  (`comm=syn-dl-payload executes .../syn-dl-payload, written 0.0s earlier by ... comm=curl`)
+  and the correlator's rule_connect_filewrite on curl, which carries the same string; a
+  sidecar counts by technique string, so both count. rule_connect_filewrite counts an
+  extension-less write only under /tmp, /var/tmp, /dev/shm or a downloads directory
+  (is_payload_file), so the drop directory is pinned to /tmp whatever TMPDIR says. With the
+  rules checkout loaded, Sigma `susp_tmp_exec` (sigma/linux/susp_tmp_exec.yml) also raises
+  T1059/T1036 once, on the payload's exec from /tmp; it is content, not an agent rule, so it
+  is not listed. The script refuses to start when port 8093 is already in use (checked in
+  /proc/net/tcp and tcp6) and runs the downloaded file only if it is byte-identical to the
+  one it served (`cmp`): with a foreign server already on the port it exits 2 and runs
+  nothing. The listener wait reads /proc/net/tcp with builtins: a connecting probe raised
+  BAYES and observe-mode RESPONSE-KILL in an earlier draft. No work directory left.

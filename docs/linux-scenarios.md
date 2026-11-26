@@ -20,6 +20,7 @@ them.
 | Function | Source |
 | --- | --- |
 | `check_base64_decode` | [`crates/rules/src/stateless/execution.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless/execution.rs) |
+| `check_download_then_exec` | [`crates/rules/src/download_state.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/download_state.rs) |
 | `check_ld_preload_hijack` | [`crates/rules/src/stateless/privilege_escalation.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless/privilege_escalation.rs) |
 | `check_persistence_write` | [`crates/rules/src/stateless/persistence.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless/persistence.rs) |
 | `check_log_file_delete`, `evaluate_file_set_time` | [`crates/rules/src/stateless/indicator_removal.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless/indicator_removal.rs) |
@@ -147,7 +148,7 @@ not the path.
 ### `download-exec.sh`
 
 [Script](../scenarios/download-exec.sh) · [sidecar](../scenarios/download-exec.yaml) ·
-`T1105 ×2` · needs `curl`, `python3`
+`T1105 ×2`, `T1105/T1059/T1071 ×1`, `T1059/T1071 ×1` · needs `curl`, `python3`, `cmp`
 
 `curl -o` downloads a two-line shell script from a loopback `python3 -m http.server` into a fresh
 `mktemp -d` directory, and a second process then runs the script. That is the join
@@ -155,8 +156,12 @@ not the path.
 alerts when an exec's `comm` is the basename of such a path within 60 s. The payload's name has 14
 bytes, because the kernel cuts `comm` at 15. `dropper-chain.sh` covers the single-pid chain, not
 this join. The count is 2 because the correlator's `rule_connect_filewrite` also writes `T1105`, on
-`curl`. The script waits for the listener by reading `/proc/net/tcp` with builtins: a probe that
-connects would add shell-network alerts of its own.
+`curl`, and only when the file lands under `/tmp`: the drop directory is always there, whatever
+`TMPDIR` says. `curl` also completes the correlator's single-pid chains, which are asserted too.
+With the rules checkout loaded, Sigma `susp_tmp_exec` adds `T1059/T1036` on the payload's exec. The script waits for the listener by reading `/proc/net/tcp` and `tcp6` with
+builtins, because a probe that connects would add shell-network alerts of its own. It refuses to
+start if the port is already taken, and runs the downloaded file only if `cmp` finds the bytes it
+served: content from a listener it did not start is never executed.
 
 ### `bind-shell.sh`
 
