@@ -1,0 +1,26 @@
+name: download-exec
+platform: linux
+script: download-exec.sh
+simulates: >
+  Ingress tool transfer followed by execution (T1105): curl downloads a small shell script
+  from a loopback HTTP server into a fresh directory, and the script is then executed by a
+  second process, within the 60 s download-to-execution window.
+expected_detections:
+  - technique: "T1105"
+    rule: check_download_then_exec   # crates/rules/src/download_state.rs — the exec's comm
+                                      # is the basename of a path curl wrote; plus
+                                      # rule_connect_filewrite (crates/correlator/src/rules.rs)
+                                      # on curl itself, same technique string
+    min_count: 2
+    tolerance: 0
+notes: >
+  Live-tested 2026-11-26 on Debian 12 (6.1.0-17), agent at `main` (`2ce1d45b`) plus
+  agent#365 (no rule change), eBPF sensor, scenario run as an unprivileged user, three runs:
+  exactly 2 T1105 alerts each time. One is check_download_then_exec on the payload's exec
+  (`comm=syn-dl-payload executes .../syn-dl-payload, written 0.0s earlier by ... comm=curl`),
+  the other is the correlator's rule_connect_filewrite on curl, which carries the same
+  "T1105" string; a sidecar counts by technique string, so both count. curl also raises
+  T1105/T1059/T1071 and T1059/T1071 (dropper-chain.yaml asserts the first), not listed here.
+  The listener wait reads /proc/net/tcp with builtins: an earlier draft probed with bash
+  /dev/tcp subshells, and each probe was a shell making a connection (BAYES, observe-mode
+  RESPONSE-KILL). No work directory left.

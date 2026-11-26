@@ -144,6 +144,20 @@ pid; `wget ... && ./payload` would be two processes, a different rule. The outpu
 by `mktemp` (`O_EXCL`), so the write cannot follow a planted symlink; the rule keys on the pid,
 not the path.
 
+### `download-exec.sh`
+
+[Script](../scenarios/download-exec.sh) · [sidecar](../scenarios/download-exec.yaml) ·
+`T1105 ×2` · needs `curl`, `python3`
+
+`curl -o` downloads a two-line shell script from a loopback `python3 -m http.server` into a fresh
+`mktemp -d` directory, and a second process then runs the script. That is the join
+`check_download_then_exec` makes: it remembers each write-intent open by a known downloader and
+alerts when an exec's `comm` is the basename of such a path within 60 s. The payload's name has 14
+bytes, because the kernel cuts `comm` at 15. `dropper-chain.sh` covers the single-pid chain, not
+this join. The count is 2 because the correlator's `rule_connect_filewrite` also writes `T1105`, on
+`curl`. The script waits for the listener by reading `/proc/net/tcp` with builtins: a probe that
+connects would add shell-network alerts of its own.
+
 ### `bind-shell.sh`
 
 [Script](../scenarios/bind-shell.sh) · [sidecar](../scenarios/bind-shell.yaml) ·

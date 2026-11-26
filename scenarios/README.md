@@ -33,6 +33,7 @@ Unless noted, a scenario runs as an ordinary user against an agent started with
 | `beacon.sh` | Periodic connections to the same local destination | `T1071/T1041`, `T1059/T1071` | `nc` |
 | `respawn-beacon.sh` | A beacon that respawns after each connection | `T1071/T1041`, `T1059/T1071` | `nc` |
 | `dropper-chain.sh` | One process downloads, writes and executes a payload | `T1105/T1059/T1071` | `nc`, `curl` |
+| `download-exec.sh` | `curl` downloads a script from a loopback server, then a second process runs it | `T1105` | `curl`, `python3` |
 | `bind-shell.sh` | A shell served on a loopback port through a listening `nc` | `T1571`, `T1059/T1071` | `nc` |
 | `dns-exfil.sh` | Data chunked into high-entropy DNS subdomains of a domain that never resolves | `T1048.003/T1071.004` | `python3`, glibc, agent flag `--enable-dns-capture` |
 
