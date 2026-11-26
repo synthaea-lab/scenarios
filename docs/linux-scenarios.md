@@ -156,9 +156,10 @@ not the path.
 alerts when an exec's `comm` is the basename of such a path within 60 s. The payload's name has 14
 bytes, because the kernel cuts `comm` at 15. `dropper-chain.sh` covers the single-pid chain, not
 this join. The count is 2 because the correlator's `rule_connect_filewrite` also writes `T1105`, on
-`curl`, and only when the file lands under `/tmp`: the drop directory is always there, whatever
-`TMPDIR` says. `curl` also completes the correlator's single-pid chains, which are asserted too.
-With the rules checkout loaded, Sigma `susp_tmp_exec` adds `T1059/T1036` on the payload's exec. The script waits for the listener by reading `/proc/net/tcp` and `tcp6` with
+`curl`, and only when the file lands under `/tmp`: the drop directory is always there,
+whatever `TMPDIR` says. `curl` also completes the correlator's single-pid chains, which are
+asserted too. With the rules checkout loaded, Sigma `susp_tmp_exec` adds `T1059/T1036` on the
+payload's exec. The script waits for the listener by reading `/proc/net/tcp` and `tcp6` with
 builtins, because a probe that connects would add shell-network alerts of its own. It refuses to
 start if the port is already taken, and runs the downloaded file only if `cmp` finds the bytes it
 served: content from a listener it did not start is never executed.

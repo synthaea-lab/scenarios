@@ -37,5 +37,7 @@ notes: >
   is not listed. The script refuses to start when port 8093 is already in use (checked in
   /proc/net/tcp and tcp6) and runs the downloaded file only if it is byte-identical to the
   one it served (`cmp`): with a foreign server already on the port it exits 2 and runs
-  nothing. The listener wait reads /proc/net/tcp with builtins: a connecting probe raised
-  BAYES and observe-mode RESPONSE-KILL in an earlier draft. No work directory left.
+  nothing. A `cmp` mismatch exits 1, not 2: the port and server checks are preconditions,
+  a mismatch means something is actively wrong. The listener wait reads /proc/net/tcp with
+  builtins: a connecting probe raised BAYES and observe-mode RESPONSE-KILL in an earlier
+  draft. No work directory left.
