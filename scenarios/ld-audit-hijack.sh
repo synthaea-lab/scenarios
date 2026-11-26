@@ -24,8 +24,9 @@ set -euo pipefail
 
 require_command cc "install a C compiler: Debian apt install build-essential, Fedora dnf install gcc"
 
-# Under /tmp, which the rule never trusts, whatever /etc/ld.so.conf lists.
-make_workdir DIR "${TMPDIR:-/tmp}" synthaea-ldaudit-
+# Always under /tmp, whatever TMPDIR says: the rule never trusts /tmp, whatever /etc/ld.so.conf
+# lists, while another TMPDIR could be in the trust set.
+make_workdir DIR /tmp synthaea-ldaudit-
 SRC="$DIR/audit.c"
 LIB="$DIR/audit.so"
 MARKER="$DIR/loaded.marker"

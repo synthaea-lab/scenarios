@@ -20,4 +20,8 @@ notes: >
   present (glibc loaded the library), and no work directory left. Exactly one alert because
   `sleep` is the only exec carrying LD_AUDIT; the compiler runs without it. On musl the
   dynamic linker ignores LD_AUDIT: the variable is still captured and the alert is the
-  same, but the script warns that the marker is missing.
+  same, but the script warns that the marker is missing. The work directory is always under
+  /tmp, whatever TMPDIR says. Compiling the library also raises T1027.010 twice on Debian 12
+  (gcc 12): `collect2` and `ld` get argument blocks over 1 KiB, which the probe cuts
+  (73 and 43 bytes omitted, same in two runs with the rules content). Not listed: the count
+  depends on the toolchain's paths. With the rules content, nothing else fires.
