@@ -1,0 +1,19 @@
+name: journald-vacuum
+platform: linux
+script: journald-vacuum.sh
+simulates: >
+  journald vacuumed to nothing (`journalctl --vacuum-time=1s`, T1070.002, Indicator
+  Removal: Clear Logs): the exec-side way to clear Linux logs, next to log-clear's file
+  delete. The command points `-D` at a throwaway journal directory the scenario creates;
+  the real system journal is never vacuumed.
+expected_detections:
+  - technique: "T1070.002"
+    rule: check_log_clear_exec   # crates/rules/src/stateless/indicator_removal.rs
+    min_count: 1
+    tolerance: 0
+notes: >
+  Live-tested 2026-11-25 on Debian 12 (6.1.0-17), agent at `main` (`2ce1d45b`) plus agent#365 (no rule
+  change), eBPF sensor, scenario run as an unprivileged user: exactly 1 T1070.002 alert (comm
+  journalctl, the full `-D ... --vacuum-time=1s` command line), and the system journal's
+  `journalctl --disk-usage` unchanged. Needs `journalctl` (a systemd distro); on a distro
+  without it the scenario exits as a precondition failure.

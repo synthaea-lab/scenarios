@@ -22,7 +22,7 @@ them.
 | `check_base64_decode` | [`crates/rules/src/stateless/execution.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless/execution.rs) |
 | `check_ld_preload_hijack` | [`crates/rules/src/stateless/privilege_escalation.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless/privilege_escalation.rs) |
 | `check_persistence_write` | [`crates/rules/src/stateless/persistence.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless/persistence.rs) |
-| `check_log_file_delete`, `evaluate_file_set_time` | [`crates/rules/src/stateless/indicator_removal.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless/indicator_removal.rs) |
+| `check_log_file_delete`, `check_log_clear_exec`, `evaluate_file_set_time` | [`crates/rules/src/stateless/indicator_removal.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless/indicator_removal.rs) |
 | `check_security_process_signal` | [`crates/rules/src/stateless/impair_defenses.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/stateless/impair_defenses.rs) |
 | `check_web_server_spawns_shell` | [`crates/rules/src/state.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/state.rs) |
 | `check_beacon` | [`crates/rules/src/network_state.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/network_state.rs) |
@@ -219,8 +219,19 @@ root
 Creates `/var/log/synthaea-scenario-test.log` and deletes it. `check_log_file_delete` fires on a
 delete under a known log location. The safety-net cleanup checks that the file exists before
 removing it: the probe fires at syscall entry, before the kernel knows whether the file exists, so
-a second `unlink` would be a second alert. The exec-side sibling (`journalctl --vacuum` and the
-like) is not exercised.
+a second `unlink` would be a second alert. The exec-side sibling is
+[`journald-vacuum.sh`](#journald-vacuumsh).
+
+### `journald-vacuum.sh`
+
+[Script](../scenarios/journald-vacuum.sh) · [sidecar](../scenarios/journald-vacuum.yaml) ·
+`T1070.002 ×1` · needs `journalctl` (a systemd distro)
+
+Runs `journalctl -D <dir> --vacuum-time=1s` against a journal directory it creates. On the system
+journal, the same command drops every archived file at once. `check_log_clear_exec` fires on an
+exec whose command line holds `journalctl` and `--vacuum`, so pointing `-D` at a throwaway
+directory gives the same alert without vacuuming the real journal. With `log-clear.sh`, it gives
+T1070.002 a second scenario, through a second rule.
 
 ### `timestomp-linux.sh`
 
