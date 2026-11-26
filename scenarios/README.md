@@ -24,6 +24,7 @@ Unless noted, a scenario runs as an ordinary user against an agent started with
 | `lineage.sh` | A process named like a web server spawns a shell | `T1059` | |
 | `argv.sh` | A shell one-liner with a base64 decode in its arguments | `T1059.004` | |
 | `ld-preload-hijack.sh` | `LD_PRELOAD` pointed at a shared object outside the dynamic linker's trusted paths | `T1574.006` | A C compiler (`cc`) |
+| `ld-audit-hijack.sh` | `LD_AUDIT` pointing at a benign rtld-audit library under `/tmp` | `T1574.006` | `cc`, glibc for the library to load |
 | `pid-reuse.sh` | A recycled pid posing as `sed` renames files; `real` mode runs a real `sed -i.bak` as a control | `T1486` (`recycled`), none (`real`) | root, `python3` |
 
 ### Network
@@ -42,7 +43,9 @@ Unless noted, a scenario runs as an ordinary user against an agent started with
 | Scenario | Simulates | Expected detection | Needs |
 | --- | --- | --- | --- |
 | `persistence-write.sh` | A marked comment line appended to `~/.bashrc`, removed on exit | `T1546.004` | |
+| `profile-d-write.sh` | A never-sourced `*.marker` file written under `/etc/profile.d/`, removed on exit | `T1546.004` | root |
 | `log-clear.sh` | A throwaway file under `/var/log/` deleted | `T1070.002` | root |
+| `journald-vacuum.sh` | `journalctl --vacuum-time=1s` run against a throwaway journal directory | `T1070.002` | `journalctl` (systemd) |
 | `timestomp-linux.sh` | File times set explicitly three ways, next to a write, a plain `touch` and a `chmod` that must stay silent | `T1070.006` (three alerts) | `bpf` in the active LSM list, kernel 6.3 or later |
 | `signal.sh` | Unprivileged `SIGTERM` and `SIGKILL` aimed at the agent, amid unrelated signal traffic | `T1562.001` | root; the `kill` and `verify-kill` modes restart the agent |
 
