@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# A real PHP web shell served by Apache + PHP-FPM (T1505.003, issue #478 level 2,
-# ADR-0022): the end-to-end case web-webshell.sh only imitates with a renamed shell.
+# A real PHP web shell served by Apache + PHP-FPM (T1505.003, issue #478 level 2): the
+# end-to-end case web-webshell.sh only imitates with a renamed shell.
 #
 # The script drops a one-line PHP file under the web root, then requests it with a
 # command. PHP-FPM runs it and `system()` spawns a real shell, so the shell's parent is

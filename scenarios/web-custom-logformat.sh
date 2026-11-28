@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # A custom Apache LogFormat against an `access_combined` source: the misparsing alert
-# (issue #478 level 2, ADR-0022).
+# (issue #478 level 2).
 #
 # A source whose lines mostly fail to parse is reported once, as a LOG-SOURCE alert,
 # instead of staying silently blind (MIN_LINES = 10 lines in a 60 s window, at least half

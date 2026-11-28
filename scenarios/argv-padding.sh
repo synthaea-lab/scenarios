@@ -3,7 +3,7 @@
 # that its middle is not captured, with the command that does the work placed there.
 #
 # The Linux eBPF probe keeps a whole argument block up to 1 KiB; past that it keeps the
-# first 768 and the last 256 bytes (ADR-0045) and reports how many bytes it left out.
+# first 768 and the last 256 bytes and reports how many bytes it left out.
 # check_truncated_cmdline (agent crates/rules/src/stateless/defense_evasion.rs) alerts on
 # that cut, because every content rule is blind to the omitted bytes. Here a `sh -c`
 # string carries 2 KiB of no-op `:` padding, then the command, then 1 KiB more padding:

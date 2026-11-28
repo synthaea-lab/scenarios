@@ -6,7 +6,7 @@
 *.bat  text eol=crlf
 *.cmd  text eol=crlf
 
-# Scenario sidecars are content-hashed (ADR-0009 scenario_yaml_sha256): CRLF would
+# Scenario sidecars are content-hashed (`scenario_yaml_sha256` in a model record): CRLF would
 # silently invalidate every model record bound to them.
 scenarios/*.yaml text eol=lf
 # Its manifest is parsed line by line by tools/check-sidecar-bytes.py.

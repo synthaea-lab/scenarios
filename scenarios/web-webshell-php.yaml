@@ -5,7 +5,7 @@ simulates: >
   A real PHP web shell on Apache + PHP-FPM (T1505.003, Server Software Component: Web
   Shell). The script writes a one-line PHP file under the web root, requests it with a
   command, and PHP-FPM spawns a real shell; the request is read from Apache's access log
-  by an `access_combined` source (issue #478 level 2, ADR-0022). The file is removed
+  by an `access_combined` source (issue #478 level 2). The file is removed
   when the script ends. Lab VM only.
 expected_detections:
   - technique: "T1505.003"

@@ -5,7 +5,7 @@ simulates: >
   A web shell request followed by a shell spawned by the web server (T1505.003, Server
   Software Component: Web Shell), plus one request per access-log signature (SQL
   injection, path traversal, a scanner user agent), read from the web server's access
-  log by an `access_combined` source (issue #478 level 2, ADR-0022). The requests are
+  log by an `access_combined` source (issue #478 level 2). The requests are
   reads and 404s against a real local server; no data is changed.
 expected_detections:
   - technique: "T1505.003"
@@ -27,7 +27,7 @@ notes: >
   the events file; they are not alert techniques. Validated with the real agent against
   nginx 1.24 (Ubuntu 24.04, WSL2): T1505.003 names the WebshellLike request, T1059 fires,
   four `http_request` events and one `http_summary` (6 requests, 4 failing) are written.
-  That run predates the redaction of the evidence value (ADR-0018): the value was cut but
+  That run predates the redaction of the evidence value: the value was cut but
   not redacted then. It is now replaced by REDACTED when the matched parameter is named like
   a secret (unit tests and a `poll_source` test); this scenario's parameters are not, and it
   has not been re-run on a live nginx since.

@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Web access-log signatures and the web-shell correlation (T1505.003, issue #478 level 2,
-# ADR-0022).
+# Web access-log signatures and the web-shell correlation (T1505.003, issue #478 level 2).
 #
 # The agent tails the web server's access log (an `access_combined` source in
 # agent.toml). A request that matches a detection signature becomes an `HttpRequest`
