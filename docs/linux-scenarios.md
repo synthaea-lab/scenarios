@@ -32,7 +32,7 @@ them.
 | `check_listen_port_drift` | [`crates/rules/src/drift_state.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/drift_state.rs) |
 | `on_auth` (brute force) | [`crates/rules/src/auth_state.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/auth_state.rs) |
 | `rule_respawn_connect`, `rule_spawn_connect`, `rule_spawn_connect_filewrite`, `rule_dns_exfil`, `rule_web_request_shell` | [`crates/correlator/src/rules.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/correlator/src/rules.rs) |
-| The ransomware reflex | [`apps/agent/src/ransomware_join.rs`](https://github.com/synthaea-lab/agent/blob/main/apps/agent/src/ransomware_join.rs) |
+| The ransomware reflex | [`crates/rules/src/ransomware_join.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/ransomware_join.rs) |
 
 The `rule:` comments inside the sidecars were written with the sidecar and are frozen with its
 bytes ([sidecar-format.md](sidecar-format.md#hash-binding)), so some name a file the agent has
@@ -356,7 +356,7 @@ the sensor's special handling of `/tmp`.
 and `CANARY_DIR`; `EXPECT`; opt-in in the rig
 
 The ransomware reflex
-([`ransomware_join.rs`](https://github.com/synthaea-lab/agent/blob/main/apps/agent/src/ransomware_join.rs))
+([`ransomware_join.rs`](https://github.com/synthaea-lab/agent/blob/main/crates/rules/src/ransomware_join.rs))
 kills a process that both raised the rename burst and touched a planted canary file
 ([deception](https://github.com/synthaea-lab/agent/blob/main/docs/detection/deception.md)) within
 60 seconds. The scenario finds the canaries the agent planted in `CANARY_DIR` (files starting with
