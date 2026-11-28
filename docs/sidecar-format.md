@@ -72,8 +72,9 @@ like one, and both rig parsers strip the quotes.
 allowed to add on top. Set them from live runs on the rig's machines, and write the measurement
 in `notes`:
 
-- **One alert per iteration.** `argv.sh` and `lineage.sh` run three iterations and their rules
-  have no windowed deduplication, so `min_count: 3, tolerance: 0`.
+- **One alert per matching process.** `lineage.sh` runs three iterations and its rule has no
+  windowed deduplication, so `min_count: 3, tolerance: 0`. `argv.sh` also runs three, but two
+  processes of each iteration match (the shell and its `base64 -d` child), so `min_count: 6`.
 - **Side effects that are themselves the technique.** `persistence-write.sh` expects
   `min_count: 2`: the append to `~/.bashrc`, and the restore on exit, which is also a write-intent
   open on a persistence path.
