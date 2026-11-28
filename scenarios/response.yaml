@@ -19,7 +19,38 @@ expected_detections:
     rule: response::quarantine_file   # crates/response; emitted whether or not policy allowed the move
     min_count: 1
     tolerance: 5
+  - technique: "YARA"
+    rule: response_scenario_marker   # response-marker.yar, on the dropped payload
+    min_count: 1
+    tolerance: 0
+  - technique: "T1059/T1036"
+    rule: masquerade   # the implant is a copy of the shell under another name, in /tmp
+    min_count: 1
+    tolerance: 0
+  - technique: "T1059.004/T1071"
+    rule: reverse shell   # the implant's command line opens /dev/tcp
+    min_count: 1
+    tolerance: 0
+  - technique: "T1059/T1071"
+    rule: spawn + network connection   # crates/correlator
+    min_count: 1
+    tolerance: 0
+  - technique: "T1071/T1041"
+    rule: check_beacon   # three connections to one destination within 60 s
+    min_count: 1
+    tolerance: 0
+  - technique: "T1571"
+    rule: check_socket_listen_drift   # the scenario's own `nc -l`, raised from the listen call
+    min_count: 1
+    tolerance: 0
 notes: >
+  Since 2026-11-28 the implant is a copy of the shell dropped in /tmp, and the correlator
+  counts each piece of evidence once. Before that the belief added the full score of a
+  process at each of its events and was shared with any sibling of the same name, so this
+  scenario's kill fired or not with the order of unrelated events: 1 run in 5 on Debian 12
+  (6.1.0-17). With both changes: 5 runs of 5 on the same machine, the same nine alert lines
+  each time (BAYES, the kill, the quarantine, and the six listed above).
+
   First run on a VM 2026-10-05 (Fedora 44, kernel 6.19.10): both modes pass; the enforce run also
   killed NetworkManager (#652). Re-run 2026-10-15 on Fedora 43 (last paragraph). Before the first
   run, 2026-09-30, only what follows was verified. What was verified: the detection and response chain

@@ -7,11 +7,14 @@
 # neither and audits that it would have (observe-only).
 #
 # Why this shape, not beacon.sh's: the kill fires on the correlator's `BAYES`
-# verdict (crates/correlator), and beacon.sh's four connections 2s apart from four
-# separate `nc` pids do not reach it. A single long-lived process that reconnects
-# every second does (measured through the real detection path in
-# crates/pipeline/src/sink/tests.rs's `a_beacon_with_a_dropped_payload_...` tests, in-process;
-# this script is the same stream on a real kernel).
+# verdict (crates/correlator), which counts each piece of evidence once. A system
+# binary that beacons does not reach it, and must not: that is how a busy service
+# got killed before. What reaches it is what an implant looks like: a binary dropped
+# in /tmp that connects within two seconds of starting and keeps reconnecting from
+# one process. So the implant here is a copy of the shell placed in /tmp (measured
+# through the real detection path in crates/pipeline/src/sink/tests.rs's
+# `a_beacon_with_a_dropped_payload_...` tests, in-process; this script is the same
+# stream on a real kernel).
 #
 # Setup:
 #   1) install scenarios/response-marker.yar under <content-dir>/rules/yara/
@@ -60,10 +63,17 @@ sleep 1
 printf 'dropped payload %s\n' "$MARKER" > "$PAYLOAD"
 echo "payload written: $PAYLOAD"
 
+# The implant's binary: a copy of the shell dropped in /tmp, as a downloaded payload is.
+IMPLANT_BIN="/tmp/synthaea-implant-$$"
+cp "$(command -v bash)" "$IMPLANT_BIN"
+chmod 0700 "$IMPLANT_BIN"
+add_cleanup rm -f "$IMPLANT_BIN"
+
 # The implant: ONE process that connects, closes, sleeps 1s, repeats. A subshell or a
 # fresh `nc` per connection would be a new pid each time, and a kill only ever lands on
 # the pid of the event that crossed the threshold.
-bash -c '
+# shellcheck disable=SC2016  # $1 and $2 are the implant's own positional parameters
+"$IMPLANT_BIN" -c '
   for _ in $(seq 1 "$1"); do
     { exec 3<>"/dev/tcp/127.0.0.1/$2"; } 2>/dev/null
     exec 3>&- 3<&-

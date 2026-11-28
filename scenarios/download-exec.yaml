@@ -22,7 +22,19 @@ expected_detections:
     rule: rule_spawn_connect   # crates/correlator/src/rules.rs — curl executes and connects
     min_count: 1
     tolerance: 0
+  - technique: "T1059/T1036"
+    rule: exec from a temporary directory   # crates/rules: the downloaded payload runs from /tmp
+    min_count: 1
+    tolerance: 0
+  - technique: "T1571"
+    rule: check_socket_listen_drift   # crates/rules (drift_state.rs): the scenario's own listener
+    min_count: 1
+    tolerance: 0
 notes: >
+  Lab run 2026-11-28 on Debian 12 (6.1.0-17): the payload's execution from /tmp
+  (T1059/T1036) and the scenario's own HTTP server (T1571, raised from the `listen(2)`
+  call) are expected since then.
+
   Live-tested 2026-11-26 on Debian 12 (6.1.0-17), agent at `main` (`2ce1d45b`) plus
   agent#365 (no rule change), eBPF sensor, scenario run as an unprivileged user, five runs
   (two with the rules checkout as content): exactly 2 T1105, 1 T1105/T1059/T1071 and 1

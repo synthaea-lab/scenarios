@@ -11,7 +11,19 @@ expected_detections:
                                           # same technique-string shape)
     min_count: 1
     tolerance: 0
+  - technique: "T1105"
+    rule: network connection + file write   # crates/correlator: the staging half of the chain, raised beside the complete one
+    min_count: 1
+    tolerance: 0
+  - technique: "T1571"
+    rule: check_socket_listen_drift   # crates/rules (drift_state.rs): the scenario's own listener
+    min_count: 1
+    tolerance: 0
 notes: >
+  Lab run 2026-11-28 on Debian 12 (6.1.0-17): the staging alert (T1105) raised beside the
+  complete chain, and the scenario's own `nc` listener (T1571, raised from the `listen(2)`
+  call), are expected since then.
+
   Live-tested 2026-09-18 (WSL2, kernel 6.6.114-microsoft-standard-WSL2): fired exactly
   once, confirmed. `rule_connect_filewrite` (crates/correlator/src/rules.rs, technique
   "T1105" alone — connect+filewrite without the exec leg) also co-fires, harmlessly;

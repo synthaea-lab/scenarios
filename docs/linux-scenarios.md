@@ -154,7 +154,7 @@ nothing. The sidecar covers the default `recycled` mode.
 ### `beacon.sh`
 
 [Script](../scenarios/beacon.sh) · [sidecar](../scenarios/beacon.yaml) ·
-`T1071/T1041 ×1`, `T1059/T1071 ×1(+20)` · needs `nc`
+`T1071/T1041 ×1`, `T1059/T1071 ×1(+20)`, `T1571 ×1` (the scenario's own listener) · needs `nc`
 
 Four `nc` connections to a loopback listener on port 4444, two seconds apart. `check_beacon`
 fires once the same `(comm, destination, port)` reaches three connections in 60 seconds on a
@@ -165,7 +165,7 @@ script as parent and each connects, which also satisfies the correlator's `rule_
 ### `respawn-beacon.sh`
 
 [Script](../scenarios/respawn-beacon.sh) · [sidecar](../scenarios/respawn-beacon.yaml) ·
-`T1071/T1041 ×1`, `T1059/T1071 ×1(+20)` · needs `nc`
+`T1071/T1041 ×1`, `T1059/T1071 ×1(+20)`, `T1571 ×1` (the scenario's own listener) · needs `nc`
 
 A listener on port 4445 that restarts after every accepted connection, each time as a new pid,
 and four client connections one second apart. It is the shape of an implant that respawns after
@@ -375,11 +375,12 @@ or when no canary is present. The encryptor is a single process because the join
 ### `response.sh`
 
 [Script](../scenarios/response.sh) · [sidecar](../scenarios/response.yaml) ·
-`BAYES ×1(+2)`, `RESPONSE-KILL ×1(+5)`, `RESPONSE-QUARANTINE ×1(+5)` · `nc`;
+`BAYES ×1(+2)`, `RESPONSE-KILL ×1(+5)`, `RESPONSE-QUARANTINE ×1(+5)`, and one each of `YARA`,
+`T1059/T1036`, `T1059.004/T1071`, `T1059/T1071`, `T1071/T1041`, `T1571` · `nc`;
 [`response-marker.yar`](../scenarios/response-marker.yar) in the content; `EXPECT`
 
 Writes `/tmp/synthaea-response-payload.bin` containing the marker string
-`SYNTHAEA-RESPONSE-SCENARIO-MARKER`, which the bundled YARA rule matches, then starts one Bash
+`SYNTHAEA-RESPONSE-SCENARIO-MARKER`, which the bundled YARA rule matches, then drops a copy of the shell in `/tmp` and runs it as one
 process that connects to a loopback listener every second, 30 times. The correlator's Bayesian
 belief crosses its threshold (`BAYES`) and the agent's
 [response](https://github.com/synthaea-lab/agent/blob/main/docs/response.md) kills the process
@@ -387,7 +388,9 @@ and quarantines the payload, or, without `--enable-kill --enable-quarantine`, re
 would have.
 
 The implant is one long-lived process on purpose: a kill lands on the pid whose event crossed
-the threshold, and `beacon.sh`'s four separate `nc` processes never accumulate enough belief. The
+the threshold. It runs from `/tmp` on purpose too: the correlator counts each piece of evidence
+once, and a system binary that beacons stays under the threshold, as it must. `beacon.sh`'s
+`nc` clients, run from `/usr/bin`, raise their alerts and no `BAYES`. The
 self-check mirrors `ransomware-reflex.sh`: killed (exit 137) and payload gone for
 `EXPECT=enforce`, ran to completion and payload present for `EXPECT=observe`. The rig runs it in
 `observe` mode with the YARA file added to the run's content.
