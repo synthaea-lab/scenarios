@@ -8,8 +8,8 @@ simulates: >
 expected_detections:
   - technique: "T1059.004"
     rule: check_base64_decode   # crates/rules/src/stateless.rs — stateless, cmdline substring
-    min_count: 3   # ITERATIONS=3 in the script, one alert per iteration, no windowed dedup
-    tolerance: 0
+    min_count: 3   # ITERATIONS=3 in the script: the `sh -c` exec of each iteration always alerts
+    tolerance: 3   # and so does its `base64 -d` child whenever the sensor captures that exec
 notes: >
   Tests capture fidelity for a cooperative process, not tamper resistance: cmdline is
   read at drain time, so a process that rewrites its own argv before the read can spoof
@@ -23,6 +23,11 @@ notes: >
   Debian 12/6.1.0-17, PR #155): 3/3 T1059.004 alerts on both kernels, full argv
   captured from /proc/<pid>/cmdline every time, never empty. min_count: 3 above
   matches that result.
+
+  Lab run 2026-11-27 and 2026-11-28 on Debian 12 (6.1.0-17), eBPF sensor: 6 alerts, two per
+  iteration. Since the exec probe captures argv in the kernel, the `base64 -d` child is no
+  longer lost to the drain race, and its own command line matches the rule as the
+  `sh -c` line does. Both are correct, hence `tolerance: 3`.
 
   Tried again 2026-09-18 in WSL2 (kernel 6.6.114-microsoft-standard-WSL2): zero
   alerts. Checked events.jsonl directly: `cmdline`/`argv` were empty ("" / []) for
