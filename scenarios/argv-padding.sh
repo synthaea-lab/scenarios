@@ -2,11 +2,11 @@
 # Command obfuscation by argument padding (T1027.010): a shell command line long enough
 # that its middle is not captured, with the command that does the work placed there.
 #
-# The Linux eBPF probe keeps a whole argument block up to 1 KiB; past that it keeps the
-# first 768 and the last 256 bytes and reports how many bytes it left out.
+# The Linux eBPF probe keeps a whole argument block up to 4 KiB; past that it keeps the
+# first 3,072 and the last 1,024 bytes and reports how many bytes it left out.
 # check_truncated_cmdline (agent crates/rules/src/stateless/defense_evasion.rs) alerts on
 # that cut, because every content rule is blind to the omitted bytes. Here a `sh -c`
-# string carries 2 KiB of no-op `:` padding, then the command, then 1 KiB more padding:
+# string carries 8 KiB of no-op `:` padding, then the command, then 4 KiB more padding:
 # the command sits in the omitted middle, as an intruder would hide a payload. The command
 # only prints a line.
 #
@@ -23,8 +23,8 @@ set -euo pipefail
 
 # printf -v is a builtin: no extra process in the scenario's tree. `: : : ...` is one
 # no-op command with many arguments.
-printf -v HEAD_PAD ': %.0s' {1..1024}
-printf -v TAIL_PAD ': %.0s' {1..512}
+printf -v HEAD_PAD ': %.0s' {1..4096}
+printf -v TAIL_PAD ': %.0s' {1..2048}
 SCRIPT="${HEAD_PAD}; echo 'synthaea argv-padding: the hidden command ran'; ${TAIL_PAD}"
 
 say "Running sh -c with a ${#SCRIPT}-byte script, the command in its middle..."
