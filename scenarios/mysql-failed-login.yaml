@@ -3,8 +3,8 @@ platform: linux
 script: mysql-failed-login.sh
 simulates: >
   A burst of failed logins against a local MariaDB/MySQL server (T1110, Brute Force),
-  read from the server's error log by a `mysql_error` source (issue #478 level 2,
-  ADR-0022). The scenario uses a made-up account name and a deliberately wrong
+  read from the server's error log by a `mysql_error` source (issue #478 level 2). The scenario
+  uses a made-up account name and a deliberately wrong
   password; no data and no real account is touched.
 expected_detections:
   - technique: "T1110"

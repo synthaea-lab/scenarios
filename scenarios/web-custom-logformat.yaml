@@ -3,7 +3,7 @@ platform: linux
 script: web-custom-logformat.sh
 simulates: >
   A site whose Apache LogFormat is not the combined format, read by an `access_combined`
-  source (issue #478 level 2, ADR-0022). Not an attack: the case where detection would
+  source (issue #478 level 2). Not an attack: the case where detection would
   otherwise go blind without saying so.
 expected_detections:
   - technique: "LOG-SOURCE"

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# MariaDB/MySQL failed-login burst (T1110, issue #478 level 2, ADR-0022).
+# MariaDB/MySQL failed-login burst (T1110, issue #478 level 2).
 #
 # The agent tails the database's error log (a `mysql_error` source in agent.toml),
 # turns each "Access denied" line into a failed-logon AuthEvent, and the existing
