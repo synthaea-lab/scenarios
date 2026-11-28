@@ -3,7 +3,7 @@ platform: linux
 script: argv-padding.sh
 simulates: >
   Command obfuscation by argument padding (T1027.010, Obfuscated Files or Information:
-  Command Obfuscation): a `sh -c` script of about 3 KiB whose working command sits between
+  Command Obfuscation): a `sh -c` script of about 12 KiB whose working command sits between
   two runs of no-op `:` padding, in the bytes the Linux probe does not capture. The command
   only prints a line.
 expected_detections:
@@ -13,11 +13,16 @@ expected_detections:
     min_count: 1
     tolerance: 0
 notes: >
+  Since 2026-11-28 the probe's windows are 3,072 and 1,024 bytes (4 KiB in all, wire v29),
+  so the script grew from 3 to 12 KiB: 8 KiB of padding before the command and 4 KiB after
+  it, which keeps the command in the bytes not captured. The numbers in the paragraph below
+  are from the 1 KiB windows.
+
   Live-tested 2026-11-26 on Debian 12 (6.1.0-17), agent at `main` (`2ce1d45b`) plus
   agent#365 (no rule change), eBPF sensor, scenario run as an unprivileged user: exactly 1
   T1027.010 alert per run, on the `sh` exec ("2111 bytes between its head and its tail were
   not captured ... 1024 bytes kept, 4 args"), so the probe's 768-byte head and 256-byte
   tail both hold only padding. The padding is built with `printf -v`, a builtin,
   so the script adds no other exec with a long argument block. When the probe's head read
-  fails and userspace falls back to /proc/<pid>/cmdline, the 3 KiB fit in its 32 KiB
+  fails and userspace falls back to /proc/<pid>/cmdline, the script fits in its 32 KiB
   budget: no cut, so no alert.

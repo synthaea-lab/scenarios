@@ -13,16 +13,10 @@ expected_detections:
                                      # outside the trust set (/tmp never trusted)
     min_count: 1
     tolerance: 0
-  - technique: "T1027.010"
-    rule: check_truncated_cmdline   # crates/rules: the scenario's own compile step (collect2, ld), see notes
-    min_count: 2
-    tolerance: 0
 notes: >
-  Lab run 2026-11-28 on Debian 12 (6.1.0-17): building the shared object runs `collect2`
-  and `ld` with command lines over 1 KiB, and each raises the "command line not captured
-  whole" alert. They come from this scenario's setup, not from the technique it shows, and
-  they are a false-positive class on any host that compiles: expected here so the run is
-  stable, to be fixed in the rule.
+  Building the shared object runs `collect2` and `ld` with command lines just over 1 KiB.
+  While the probe's windows were 1 KiB each raised a "command line not captured whole"
+  alert; with 4 KiB windows (2026-11-28) they are captured whole and raise nothing.
 
   Live-tested 2026-11-25 on Debian 12 (6.1.0-17, glibc), agent at `main` (`2ce1d45b`) plus
   agent#365 (no rule change), eBPF sensor, scenario run as an unprivileged user: exactly 1

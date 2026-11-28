@@ -80,12 +80,12 @@ stays alive too: the scenario measures capture fidelity, not that race.
 [Script](../scenarios/argv-padding.sh) · [sidecar](../scenarios/argv-padding.yaml) ·
 `T1027.010 ×1`
 
-Runs `sh -c` with a script of about 3 KiB: 2 KiB of no-op `:` padding, the command, then 1 KiB
-more padding. Past 1 KiB the eBPF probe keeps only the first 768 and the last 256 bytes of an
+Runs `sh -c` with a script of about 12 KiB: 8 KiB of no-op `:` padding, the command, then 4 KiB
+more padding. Past 4 KiB the eBPF probe keeps only the first 3,072 and the last 1,024 bytes of an
 argument block, so the command falls in the bytes left out, where no content rule
 can see it. `check_truncated_cmdline` alerts on the cut itself, at Low because the probe
 measured it. The padding is built with `printf -v`, a builtin, so no other exec carries a long
-command line. When the probe's read fails and userspace reads `/proc` instead, 3 KiB fit and
+command line. When the probe's read fails and userspace reads `/proc` instead, the script fits and
 there is no alert.
 
 ### `encoded-stager.sh`
