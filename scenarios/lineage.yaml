@@ -12,7 +12,19 @@ expected_detections:
                                            # the child's resolved parent comm is "nginx"
     min_count: 3   # ITERATIONS=3 in the script, one alert per iteration, no windowed dedup
     tolerance: 0
+  - technique: "T1059/T1036"
+    rule: exec from a temporary directory   # crates/rules: the stand-in web server binary lives in /tmp
+    min_count: 3
+    tolerance: 0
+  - technique: "T1505.003"
+    rule: shell spawned by a web server   # crates/correlator: one per iteration, no access-log line to pair with
+    min_count: 3
+    tolerance: 0
 notes: >
+  Lab run 2026-11-28 on Debian 12 (6.1.0-17): each iteration also raises the exec from a
+  temporary directory (the stand-in `nginx` is a copy in /tmp) and the web-server shell
+  alert; both are what the scenario does and are expected since then.
+
   A silent run (zero alerts) is itself meaningful here: it means lineage resolution is
   broken on the running kernel (regression of #53), not that nothing happened. Also
   worth eyeballing the raw exec events: every /tmp/nginx -> /bin/sh pair should show
