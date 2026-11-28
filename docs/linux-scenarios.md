@@ -65,14 +65,15 @@ Shape decisions, all in [`lib/common.sh`](../lib/common.sh):
 
 ### `argv.sh`
 
-[Script](../scenarios/argv.sh) · [sidecar](../scenarios/argv.yaml) · `T1059.004 ×3`
+[Script](../scenarios/argv.sh) · [sidecar](../scenarios/argv.yaml) · `T1059.004 ×6`
 
 Three `sh -c` one-liners containing `base64 -d`. `check_base64_decode` matches a substring of the
-command line, so it fires only if the agent captured the argument vector. The Linux sensor reads
-`/proc/<pid>/cmdline` when it drains the exec event, not at `execve`. A process that exits within
-the few milliseconds before the drain legitimately shows an empty command line, so each one-liner
-starts with `sleep 0.2` to stay alive past it: the scenario measures capture fidelity, not that
-race.
+command line, so it fires only if the agent captured the argument vector. Two processes of each
+iteration carry the decode, the shell and its `base64 -d` child, hence six alerts. The exec probe
+reads argv in the kernel; where it cannot, the sensor reads `/proc/<pid>/cmdline` when it drains
+the event, and a process gone within those few milliseconds shows an empty command line. Each
+one-liner therefore starts with `sleep 0.2`, and its pipeline delays the `echo` so the child
+stays alive too: the scenario measures capture fidelity, not that race.
 
 ### `argv-padding.sh`
 

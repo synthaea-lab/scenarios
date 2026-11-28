@@ -8,8 +8,8 @@ simulates: >
 expected_detections:
   - technique: "T1059.004"
     rule: check_base64_decode   # crates/rules/src/stateless.rs — stateless, cmdline substring
-    min_count: 3   # ITERATIONS=3 in the script: the `sh -c` exec of each iteration always alerts
-    tolerance: 3   # and so does its `base64 -d` child whenever the sensor captures that exec
+    min_count: 6   # ITERATIONS=3 in the script, two alerts per iteration (sh and base64), no windowed dedup
+    tolerance: 0
 notes: >
   Tests capture fidelity for a cooperative process, not tamper resistance: cmdline is
   read at drain time, so a process that rewrites its own argv before the read can spoof
@@ -24,10 +24,13 @@ notes: >
   captured from /proc/<pid>/cmdline every time, never empty. min_count: 3 above
   matches that result.
 
-  Lab run 2026-11-27 and 2026-11-28 on Debian 12 (6.1.0-17), eBPF sensor: 6 alerts, two per
-  iteration. Since the exec probe captures argv in the kernel, the `base64 -d` child is no
-  longer lost to the drain race, and its own command line matches the rule as the
-  `sh -c` line does. Both are correct, hence `tolerance: 3`.
+  Two alerts per iteration: the `sh -c` and its `base64 -d` child both carry the decode
+  in their argv. While argv came only from /proc at drain time, the child (gone within
+  ~1 ms) mostly lost the race and 3 was the usual count. Since the exec probe reads argv
+  in the kernel, both are always counted: 6 in 5/5 runs on Debian 12 (6.1.0-17) on
+  2026-11-20, and in the lab runs of 2026-11-27 and 2026-11-28. The pipeline's left side
+  sleeps 0.2 s before the `echo` so that `base64 -d` outlives the drain on the /proc
+  fallback too. The 3/3 results below predate this.
 
   Tried again 2026-09-18 in WSL2 (kernel 6.6.114-microsoft-standard-WSL2): zero
   alerts. Checked events.jsonl directly: `cmdline`/`argv` were empty ("" / []) for

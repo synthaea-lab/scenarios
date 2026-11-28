@@ -14,8 +14,10 @@
 # Usage:
 #   1) terminal A: sudo target/release/agent run
 #   2) terminal B: ./scenarios/argv.sh
-#   3) expected: exactly one alert per iteration —
+#   3) expected: exactly two alerts per iteration, one per process whose argv holds the
+#      decode —
 #        T1059.004 — pid=<sh> comm=sh: command line contains a base64 decode: sh -c ...
+#        T1059.004 — pid=<base64> comm=base64: command line contains a base64 decode: base64 -d
 #      No alert means argv/cmdline capture is broken on this kernel ($(uname -r)).
 #
 # Also eyeball the raw exec events (agent run --print-events): every `sh -c` event
@@ -28,13 +30,10 @@
 # Hyper-V lab), so the `sh -c` here begins with `sleep 0.2` to hold the process open
 # well past the drain — this scenario measures capture fidelity, not the race.
 #
-# Known wrong count, frozen with the sidecar until the next retrain (#207): the
-# `base64 -d` child of each `sh -c` matches check_base64_decode as well (its argv is
-# `base64 -d`). It exits within ~1 ms, so whether it wins the drain race decides
-# between 3 and 6 alerts: the rig's debian12 run of 2026-11-08 counted 6, the
-# `base64 -d` children being pids 6503/6508/6513. Not a double report: two processes
-# each carry the decode. The fix for the retrain keeps `base64 -d` blocked on its
-# stdin past the drain (`(sleep 0.2; echo ...) | base64 -d`) and expects 6.
+# Two processes carry the decode, hence two alerts per iteration: the `sh -c` and its
+# `base64 -d` child. The exec probe reads argv in the kernel, so both are always seen.
+# On the `/proc` fallback the child must outlive the drain as well, so the pipeline's
+# left side sleeps 0.2 s before the `echo` and `base64 -d` waits on its stdin.
 #
 # Scope: this asserts *capture fidelity* for a cooperative process, not tamper
 # resistance. `/proc/<pid>/cmdline` is read at drain time, not at execve, so a process
@@ -51,11 +50,11 @@ PAYLOAD='ZWNobyBoZWxsbwo='  # "echo hello\n"
 
 say "Running $ITERATIONS shell invocations with a base64 decode in argv..."
 for i in $(seq 1 "$ITERATIONS"); do
-    sh -c "sleep 0.2; echo $PAYLOAD | base64 -d >/dev/null"
+    sh -c "sleep 0.2; (sleep 0.2; echo $PAYLOAD) | base64 -d >/dev/null"
     say "  iteration $i done"
     sleep 1
 done
 
-done_msg "one T1059.004 alert per iteration, which means argv/cmdline capture is correct" \
+done_msg "two T1059.004 alerts per iteration (the shell and its base64 child), which means argv/cmdline capture is correct" \
     "on this kernel ($(uname -r)); no alert means #152 has regressed (the" \
     "/proc/<pid>/cmdline read returned nothing)"
