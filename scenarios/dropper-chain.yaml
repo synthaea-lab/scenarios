@@ -19,7 +19,16 @@ expected_detections:
     rule: check_socket_listen_drift   # crates/rules (drift_state.rs): the scenario's own listener
     min_count: 1
     tolerance: 0
+  - technique: "T1059/T1071"
+    rule: spawn + network connection   # crates/correlator: the first two steps of the chain, raised before the write completes it
+    min_count: 1
+    tolerance: 0
 notes: >
+  Since the agent reads the probes' events in timestamp order (2026-11-28), the spawn +
+  network connection alert is raised in every run, before the file write completes the
+  chain: five runs of five on Debian 12 (6.1.0-17). Before, it appeared only when the exec
+  happened to be delivered ahead of the connect.
+
   Lab run 2026-11-28 on Debian 12 (6.1.0-17): the staging alert (T1105) raised beside the
   complete chain, and the scenario's own `nc` listener (T1571, raised from the `listen(2)`
   call), are expected since then.
